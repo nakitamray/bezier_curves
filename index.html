@@ -21,34 +21,48 @@
     }
 
     input {
-      margin-top: 10px;
       padding: 8px;
       font-size: 14px;
+      border-radius: 5px;
+      border: none;
       font-family: 'Poppins', sans-serif;
     }
 
     button {
-      margin-top: 10px;
       padding: 8px 16px;
       font-size: 14px;
+      margin-left: 8px;
       font-family: 'Poppins', sans-serif;
       cursor: pointer;
       background-color: #4CAF50;
       color: #fff;
       border: none;
-      border-radius: 4px;
+      border-radius: 10px;
       transition: background-color 0.3s;
     }
 
     button:hover {
-      background-color: #45a049;
+      background-color: #b5dbb7;
+      color: #308232;
+    }
+
+    #controlPointsContainer {
+      background-color: #308232;
+      padding: 10px;
+      border-radius: 20px;
+      display: flex;
+      margin-left: 20px;
+      flex-direction: row;
+      align-items: center;
     }
   </style>
 </head>
 <body>
   <canvas id="bezierCanvas" width="500" height="300"></canvas>
-  <input type="number" id="controlPointsInput" value="3" min="2" max="7" step="1">
-  <button id="updateControlPointsButton">Update Control Points</button>
+  <div id="controlPointsContainer">
+    <input type="number" id="controlPointsInput" value="3" min="2" max="7" step="1">
+    <button id="updateControlPointsButton">Update Control Points</button>
+  </div>
 
   <script>
     const canvas = document.getElementById('bezierCanvas');
@@ -59,12 +73,13 @@
     const redColor = '#ff0000';
     const controlVectorColor = '#000000'; // Black color for vectors between control points
     const interpolationVectorColor = '#000080'; // Navy color for vectors between interpolation points
-    const midpointVectorColor = '#800080'; // Purple color for vectors between midpoints
+    const midpointVectorColor = ['#800080', '#FF00FF', '#8A2BE2', '#9932CC', '#9400D3', '#8B008B']; // Purple colors for vectors between midpoints
     const vectorWidth = 0.5;
     let controlPointsCount = 3; // Set the default number of control points to 3
     let controlPoints = [];
     let interpolationPoints = [];
     let midpointVectors = [];
+    let drawnMidpoints = []; // Store all drawn midpoints
 
     let draggedPoint = null;
 
@@ -78,12 +93,15 @@
       drawVectors(interpolationPoints, interpolationVectorColor);
 
       // Draw vectors connecting midpoints
-      drawVectors(midpointVectors, midpointVectorColor);
+      drawVectors(midpointVectors, midpointVectorColor[0]);
+
+      // Draw vectors connecting midpoints
+      drawMidpointConnectionVectors(midpointVectors, midpointVectorColor);
 
       // Draw control points and interpolation points
       drawPoints(controlPoints, defaultColor);
       drawPoints(interpolationPoints, redColor);
-      drawMidpoints(midpointVectors, midpointVectorColor);
+      drawMidpoints(midpointVectors, midpointVectorColor[0]);
 
       // Draw Bezier curve
       ctx.strokeStyle = lightBlue;
@@ -95,6 +113,39 @@
         ctx.lineTo(bezierPoints[i].x, bezierPoints[i].y);
       }
       ctx.stroke();
+
+      // Draw midpoints for midpoints recursively
+      drawRecursiveMidpoints(midpointVectors, midpointVectorColor.slice(1));
+    }
+
+    function drawRecursiveMidpoints(points, colors) {
+      // Check if there are midpoints to draw
+      if (points.length >= 2) {
+        // Calculate midpoints for midpoints
+        const nextMidpoints = generateMidpointVectors(points);
+        // Draw vectors connecting midpoints
+        drawMidpointConnectionVectors(nextMidpoints, colors);
+        // Draw midpoints
+        drawMidpoints(nextMidpoints, colors[0]);
+        // Recursively draw midpoints for midpoints
+        drawRecursiveMidpoints(nextMidpoints, colors.slice(1));
+        // Store the drawn midpoints for later use
+        drawnMidpoints.push(...nextMidpoints);
+      }
+    }
+
+    function drawMidpointConnectionVectors(points, colors) {
+      ctx.lineWidth = vectorWidth;
+      for (let i = 0; i < points.length; i++) {
+        const midX = (points[i].x + points[i].midpoint.x) / 2;
+        const midY = (points[i].y + points[i].midpoint.y) / 2;
+        ctx.strokeStyle = colors[i % colors.length];
+        ctx.beginPath();
+        ctx.moveTo(points[i].x, points[i].y);
+        ctx.lineTo(midX, midY);
+        ctx.lineTo(points[i].midpoint.x, points[i].midpoint.y);
+        ctx.stroke();
+      }
     }
 
     function drawVectors(points, color) {
@@ -141,7 +192,7 @@
       for (let i = 0; i < points.length - 1; i++) {
         const x = (points[i].x + points[i + 1].x) / 2;
         const y = (points[i].y + points[i + 1].y) / 2;
-        midpoints.push({ x, y });
+        midpoints.push({ x, y, midpoint: points[i + 1] });
       }
       return midpoints;
     }
@@ -228,6 +279,7 @@
     function updateControlPoints() {
       controlPointsCount = parseInt(document.getElementById('controlPointsInput').value, 10);
       generateDefaultControlPoints();
+      drawnMidpoints = []; // Reset drawn midpoints when control points are updated
       draw();
     }
 
