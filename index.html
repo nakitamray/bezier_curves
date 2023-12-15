@@ -58,7 +58,7 @@
   </style>
 </head>
 <body>
-  <canvas id="bezierCanvas" width="500" height="300"></canvas>
+  <canvas id="bezierCanvas" width="600" height="400"></canvas>
   <div id="controlPointsContainer">
     <input type="number" id="controlPointsInput" value="3" min="2" max="7" step="1">
     <button id="updateControlPointsButton">Update Control Points</button>
@@ -92,12 +92,6 @@
       // Draw vectors connecting interpolation points
       drawVectors(interpolationPoints, interpolationVectorColor);
 
-      // Draw vectors connecting midpoints
-      drawVectors(midpointVectors, midpointVectorColor[0]);
-
-      // Draw vectors connecting midpoints
-      drawMidpointConnectionVectors(midpointVectors, midpointVectorColor);
-
       // Draw control points and interpolation points
       drawPoints(controlPoints, defaultColor);
       drawPoints(interpolationPoints, redColor);
@@ -116,6 +110,8 @@
 
       // Draw midpoints for midpoints recursively
       drawRecursiveMidpoints(midpointVectors, midpointVectorColor.slice(1));
+      connectPurpleVectors(midpointVectors);
+
     }
 
     function drawRecursiveMidpoints(points, colors) {
@@ -123,10 +119,10 @@
       if (points.length >= 2) {
         // Calculate midpoints for midpoints
         const nextMidpoints = generateMidpointVectors(points);
-        // Draw vectors connecting midpoints
-        drawMidpointConnectionVectors(nextMidpoints, colors);
         // Draw midpoints
         drawMidpoints(nextMidpoints, colors[0]);
+        // Connect midpoints with lines matching their colors
+        drawColoredMidpointLines(nextMidpoints, colors);
         // Recursively draw midpoints for midpoints
         drawRecursiveMidpoints(nextMidpoints, colors.slice(1));
         // Store the drawn midpoints for later use
@@ -134,19 +130,57 @@
       }
     }
 
-    function drawMidpointConnectionVectors(points, colors) {
+
+    function drawColoredMidpointLines(points, colors) {
       ctx.lineWidth = vectorWidth;
-      for (let i = 0; i < points.length; i++) {
-        const midX = (points[i].x + points[i].midpoint.x) / 2;
-        const midY = (points[i].y + points[i].midpoint.y) / 2;
-        ctx.strokeStyle = colors[i % colors.length];
+      for (let i = 0; i < points.length - 1; i++) {
+        const color = colors[i % colors.length];
+        const startPoint = points[i].midpoint || points[i]; // Use midpoint if available, otherwise use the point itself
+        const endPoint = points[i + 1].midpoint || points[i + 1];
+    
+        // Connect midpoints with lines matching their colors
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.moveTo(points[i].x, points[i].y);
-        ctx.lineTo(midX, midY);
-        ctx.lineTo(points[i].midpoint.x, points[i].midpoint.y);
+        ctx.moveTo(startPoint.x, startPoint.y);
+        ctx.lineTo(endPoint.x, endPoint.y);
         ctx.stroke();
+    
+        // Draw a small circle at the midpoint for better visualization
+        if (points[i].midpoint) {
+          ctx.beginPath();
+          ctx.arc(points[i].midpoint.x, points[i].midpoint.y, 2, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+    
+        // Connect midpoints with color #800080 (purple)
+        if (color === '#800080') {
+          ctx.strokeStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(points[i].x, points[i].y);
+          ctx.lineTo(points[i].midpoint.x, points[i].midpoint.y);
+          ctx.stroke();
+        }
       }
     }
+    
+    function connectPurpleVectors(points) {
+      ctx.strokeStyle = '#800080'; // Use the color for #800080 (purple)
+      ctx.beginPath();
+      
+      for (let i = 0; i < points.length - 1; i++) {
+        const startPoint = points[i].midpoint || points[i];
+        const endPoint = points[i + 1].midpoint || points[i + 1];
+    
+        // Connect midpoints with color #800080 (purple)
+        ctx.moveTo(startPoint.x, startPoint.y);
+        ctx.lineTo(endPoint.x, endPoint.y);
+      }
+      
+      ctx.stroke();
+    }
+    
+    
 
     function drawVectors(points, color) {
       ctx.strokeStyle = color;
@@ -192,119 +226,121 @@
       for (let i = 0; i < points.length - 1; i++) {
         const x = (points[i].x + points[i + 1].x) / 2;
         const y = (points[i].y + points[i + 1].y) / 2;
-        midpoints.push({ x, y, midpoint: points[i + 1] });
+        midpoints.push({ x, y });
       }
       return midpoints;
     }
-
-    function updateMidpointVectors() {
-      midpointVectors = generateMidpointVectors(interpolationPoints);
-    }
-
-    function generateBezierPoints(points) {
-      const tValues = [];
-      for (let t = 0; t <= 1; t += 0.01) {
-        tValues.push(t);
+    
+  
+      function updateMidpointVectors() {
+        midpointVectors = generateMidpointVectors(interpolationPoints);
       }
-
-      const bezierPoints = [];
-      for (const t of tValues) {
-        let x = 0;
-        let y = 0;
-        for (let i = 0; i < points.length; i++) {
-          const binomialCoefficient = binomial(points.length - 1, i);
-          const term = binomialCoefficient * (1 - t) ** (points.length - 1 - i) * t ** i;
-          x += term * points[i].x;
-          y += term * points[i].y;
+  
+      function generateBezierPoints(points) {
+        const tValues = [];
+        for (let t = 0; t <= 1; t += 0.01) {
+          tValues.push(t);
         }
-        bezierPoints.push({ x, y });
+  
+        const bezierPoints = [];
+        for (const t of tValues) {
+          let x = 0;
+          let y = 0;
+          for (let i = 0; i < points.length; i++) {
+            const binomialCoefficient = binomial(points.length - 1, i);
+            const term = binomialCoefficient * (1 - t) ** (points.length - 1 - i) * t ** i;
+            x += term * points[i].x;
+            y += term * points[i].y;
+          }
+          bezierPoints.push({ x, y });
+        }
+  
+        return bezierPoints;
       }
-
-      return bezierPoints;
-    }
-
-    function binomial(n, k) {
-      let coeff = 1;
-      for (let i = n - k + 1; i <= n; i++) {
-        coeff *= i;
+  
+      function binomial(n, k) {
+        let coeff = 1;
+        for (let i = n - k + 1; i <= n; i++) {
+          coeff *= i;
+        }
+        for (let i = 1; i <= k; i++) {
+          coeff /= i;
+        }
+        return coeff;
       }
-      for (let i = 1; i <= k; i++) {
-        coeff /= i;
+  
+      function handleMouseDown(event) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+  
+        draggedPoint = controlPoints.find(point => {
+          const distance = Math.sqrt((point.x - mouseX) ** 2 + (point.y - mouseY) ** 2);
+          return distance < 10;
+        });
+  
+        if (draggedPoint) {
+          document.addEventListener('mousemove', handleMouseMove);
+          document.addEventListener('mouseup', handleMouseUp);
+        }
+  
+        draw();
       }
-      return coeff;
-    }
-
-    function handleMouseDown(event) {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-
-      draggedPoint = controlPoints.find(point => {
-        const distance = Math.sqrt((point.x - mouseX) ** 2 + (point.y - mouseY) ** 2);
-        return distance < 10;
-      });
-
-      if (draggedPoint) {
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
+  
+      function handleMouseMove(event) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+  
+        if (draggedPoint) {
+          draggedPoint.x = mouseX;
+          draggedPoint.y = mouseY;
+        }
+  
+        // Recalculate interpolation points and midpoint vectors as control points are moved
+        interpolationPoints = calculateInterpolationPoints(controlPoints);
+        updateMidpointVectors();
+  
+        draw();
       }
-
-      draw();
-    }
-
-    function handleMouseMove(event) {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-
-      if (draggedPoint) {
-        draggedPoint.x = mouseX;
-        draggedPoint.y = mouseY;
+  
+      function handleMouseUp() {
+        draggedPoint = null;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        draw();
       }
-
-      // Recalculate interpolation points and midpoint vectors as control points are moved
-      interpolationPoints = calculateInterpolationPoints(controlPoints);
-      updateMidpointVectors();
-
-      draw();
-    }
-
-    function handleMouseUp() {
-      draggedPoint = null;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      draw();
-    }
-
-    function updateControlPoints() {
-      controlPointsCount = parseInt(document.getElementById('controlPointsInput').value, 10);
+  
+      function updateControlPoints() {
+        controlPointsCount = parseInt(document.getElementById('controlPointsInput').value, 10);
+        generateDefaultControlPoints();
+        drawnMidpoints = []; // Reset drawn midpoints when control points are updated
+        draw();
+      }
+  
+      function generateDefaultControlPoints() {
+        controlPoints = [];
+        const radius = Math.min(canvas.width, canvas.height) / 3;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+  
+        for (let i = 0; i < controlPointsCount; i++) {
+          const angle = (i / controlPointsCount) * 2 * Math.PI;
+          const x = centerX + radius * Math.cos(angle);
+          const y = centerY + radius * Math.sin(angle);
+          controlPoints.push({ x, y });
+        }
+  
+        interpolationPoints = calculateInterpolationPoints(controlPoints);
+        updateMidpointVectors();
+      }
+  
+      canvas.addEventListener('mousedown', handleMouseDown);
+      document.getElementById('updateControlPointsButton').addEventListener('click', updateControlPoints);
+  
       generateDefaultControlPoints();
-      drawnMidpoints = []; // Reset drawn midpoints when control points are updated
-      draw();
-    }
-
-    function generateDefaultControlPoints() {
-      controlPoints = [];
-      const radius = Math.min(canvas.width, canvas.height) / 3;
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-
-      for (let i = 0; i < controlPointsCount; i++) {
-        const angle = (i / controlPointsCount) * 2 * Math.PI;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-        controlPoints.push({ x, y });
-      }
-
-      interpolationPoints = calculateInterpolationPoints(controlPoints);
-      updateMidpointVectors();
-    }
-
-    canvas.addEventListener('mousedown', handleMouseDown);
-    document.getElementById('updateControlPointsButton').addEventListener('click', updateControlPoints);
-
-    generateDefaultControlPoints();
-    draw(); // Initial draw
-  </script>
-</body>
-</html>
+      draw(); // Initial draw
+    </script>
+  </body>
+  </html>
+  
