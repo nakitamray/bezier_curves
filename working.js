@@ -18,12 +18,11 @@ let draggedPoint = null;
 let interpolationRatios = new Array(controlPointsCount - 1).fill(0.5);
 let currentT = 0.5; // Initialize current t value
 
-
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (document.getElementById('toggleConvex').checked) {
     // Check if the convex hull toggle is checked
-    ctx.fillStyle = '#FEEDE5'; // Set the fill color to #ffe4b6
+    ctx.fillStyle = '#FFEFD6'; // Set the fill color to #ffe4b6
     ctx.beginPath();
     ctx.moveTo(controlPoints[0].x, controlPoints[0].y);
 
@@ -34,8 +33,6 @@ function draw() {
 
     ctx.closePath(); // Close the path to complete the shape
     ctx.fill(); // Fill the shape with the specified color
-  } else {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
 
   // Draw vectors connecting control points
@@ -51,7 +48,6 @@ function draw() {
     drawMidpoints(midpointVectors, midpointVectorColor[0]);
     drawRecursiveMidpoints(midpointVectors, midpointVectorColor.slice(1), currentT);
     connectPurpleVectors(midpointVectors);
-  } else {
   }
 
   // Draw Bezier curve
@@ -439,8 +435,6 @@ function generateDefaultControlPoints() {
 
 canvas.addEventListener('mousedown', handleMouseDown);
 document.getElementById('updateControlPointsButton').addEventListener('click', updateControlPoints);
-document.getElementById('toggleConvex').addEventListener('change', draw);
-document.getElementById('toggleInterpolation').addEventListener('change', draw);
 
 generateDefaultControlPoints();
 
