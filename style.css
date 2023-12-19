@@ -1,0 +1,185 @@
+body {
+  overflow: hidden;
+  font-family: 'Poppins', sans-serif;
+}
+
+#title {
+    margin: 0;
+    margin-top: 5vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: rgb(22, 116, 153);
+}
+
+#content {
+    height: 75vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  h1 {
+    color: black;
+  }
+  
+  canvas {
+    border: 1px solid #000;
+  }
+
+  #controlBox {
+    margin-left: 25px;
+    
+    h3 {
+      margin: 0;
+      font-size: 14px;
+      color: rgb(80, 80, 80);
+      background-color: #c5e1ff;
+      padding: 10px;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+    }
+
+    #matrix_content {
+      background-color: #f6f9fd;
+      border-bottom-left-radius: 15px;
+      border-bottom-right-radius: 15px;
+    }
+  }
+
+
+  
+  input {
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: none;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  button {
+    padding: 8px 16px;
+    font-size: 14px;
+    margin-left: 8px;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    transition: background-color 0.3s;
+  }
+  
+  button:hover {
+    background-color: #b5dbb7;
+    color: #308232;
+  }
+  
+  .container {
+    padding: 10px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  #controlPointsContainer {
+    background-color: #308232;
+  }
+  
+  #interpolationContainer {
+    background-color: #a50045;
+  }
+
+  #convexContainer {
+    background-color: #ed652f;
+  }
+
+  #interpolationContainer span{
+    background-color: #d70059;
+  }
+
+  #convexContainer  span{
+    background-color: #ff946a;
+    padding-right: 55px;
+  }
+  
+  
+  .toggleContainer {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    padding: 0px;
+  }
+  
+  .toggleContainer span {
+    margin-left: 25px;
+    font-size: 14px;
+    color: white;
+    padding: 10px;
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+  }
+  
+  .toggleContainer input[type="checkbox"] {
+    display: none;
+  }
+  
+  .toggleContainer .toggle-slider {
+    margin-left: 25px;
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+    background-color: #ccc;
+    border-radius: 20px;
+    transition: background-color 0.4s;
+  }
+  
+  .toggleContainer .toggle-slider:before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    background-color: rgb(255, 255, 255);
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.4s;
+  }
+  
+  #toggleInterpolation:checked + .toggle-slider {
+    background-color: #7000f0;
+  }
+  
+  #toggleInterpolation:checked + .toggle-slider:before {
+    transform: translateX(20px);
+  }
+  
+  #toggleInterpolation:not(:checked) + .toggle-slider {
+    background-color: #ff6a6a;
+  }
+  
+  #toggleInterpolation:not(:checked) + .toggle-slider:before {
+    transform: translateX(0);
+  }
+
+  /* convex hull styling */
+
+  #toggleConvex:checked + .toggle-slider {
+    background-color: #edba00;
+  }
+  
+  #toggleConvex:checked + .toggle-slider:before {
+    transform: translateX(20px);
+  }
+  
+  #toggleConvex:not(:checked) + .toggle-slider {
+    background-color: #a82700;
+  }
+  
+  #toggleConvex:not(:checked) + .toggle-slider:before {
+    transform: translateX(0);
+  }
+  
