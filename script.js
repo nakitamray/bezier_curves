@@ -15,6 +15,8 @@ const canvas = document.getElementById('bezierCanvas');
     let drawnMidpoints = []; // Store all drawn midpoints
     let isMouseDown = false;
     let draggedPoint = null;
+    interpolationRatios = new Array(controlPointsCount - 1).fill(0.5);
+
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -36,19 +38,18 @@ const canvas = document.getElementById('bezierCanvas');
       // Draw vectors connecting control points
       drawVectors(controlPoints, controlVectorColor);
     
+      // Draw control points with labels
+      drawLabeledPoints(controlPoints, 'P', defaultColor);
+
       if (document.getElementById('toggleInterpolation').checked) {
-        // Draw vectors connecting interpolation points
+        // Draw interpolation points with labels
+        drawLabeledPoints(interpolationPoints, 'I', redColor);
         drawVectors(interpolationPoints, interpolationVectorColor);
-        // Draw interpolation points
-        drawPoints(interpolationPoints, redColor);
         drawMidpoints(midpointVectors, midpointVectorColor[0]);
-        // Draw midpoints for midpoints recursively
         drawRecursiveMidpoints(midpointVectors, midpointVectorColor.slice(1));
         connectPurpleVectors(midpointVectors);
       }
-    
-      // Draw control points
-      drawPoints(controlPoints, defaultColor);
+
       // Draw Bezier curve
       ctx.strokeStyle = lightBlue;
       ctx.lineWidth = 2;
@@ -59,10 +60,23 @@ const canvas = document.getElementById('bezierCanvas');
         ctx.lineTo(bezierPoints[i].x, bezierPoints[i].y);
       }
       ctx.stroke();
-  
-    
-      // Store the drawn midpoints for later use
+
       drawnMidpoints = [];
+    }
+
+
+    function drawLabeledPoints(points, label, color) {
+      points.forEach((point, index) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+    
+        // Draw label
+        ctx.fillStyle = '#000000'; // Color for labels
+        ctx.font = '12px'; // Font for labels
+        ctx.fillText(label + index, point.x + 8, point.y - 8);
+      });
     }
     
     function drawRecursiveMidpoints(points, colors) {
@@ -180,21 +194,15 @@ const canvas = document.getElementById('bezierCanvas');
       return currentDistance / totalDistance;
     }
 
-    function updateInterpolationPointsRatio() {
-      interpolationRatio = 0.5; // Reset the interpolation ratio to the default
-  
-      for (let i = 0; i < interpolationPoints.length; i++) {
-        const startPoint = controlPoints[i];
-        const endPoint = controlPoints[i + 1];
-        const interpolatedX = startPoint.x + (endPoint.x - startPoint.x) * interpolationRatio;
-        const interpolatedY = startPoint.y + (endPoint.y - startPoint.y) * interpolationRatio;
-        interpolationPoints[i].x = interpolatedX;
-        interpolationPoints[i].y = interpolatedY;
-      }
-  
-      updateMidpointVectors();
-      draw();
+    function updateInterpolationRatios() {
+      interpolationRatios = interpolationPoints.map((point, index) => {
+        const startPoint = controlPoints[index];
+        const endPoint = controlPoints[index + 1];
+        return calculateInterpolationRatio(point, startPoint, endPoint);
+      });
     }
+    
+    
 
     function handleInterpolationPointMove(event, index) {
       if (isMouseDown) {
@@ -215,27 +223,56 @@ const canvas = document.getElementById('bezierCanvas');
         const dotProduct = (mouseX - startPoint.x) * vectorX + (mouseY - startPoint.y) * vectorY;
     
         // Calculate the length of the vector
-        const vectorLengthSquared = vectorX ** 2 + vectorY ** 2;
+        const vectorLength = Math.sqrt(vectorX ** 2 + vectorY ** 2);
     
-        // Calculate the new t ratio based on the dot product
-        const tRatio = Math.max(0, Math.min(1, dotProduct / vectorLengthSquared));
+        // Calculate the ratio of the dot product to the vector length
+        let ratio = dotProduct / (vectorLength ** 2);
     
-        // Update the t ratio for all interpolation points
-        interpolationPoints.forEach((point, i) => {
-          const t = i / (interpolationPoints.length - 1); // Calculate default t value
-          point.t = t + (tRatio - 0.5); // Adjust t value based on the change in ratio
-        });
+        // Clamp the ratio to the range [0, 1]
+        ratio = Math.max(0, Math.min(1, ratio));
     
-        // Move the current interpolation point
-        currentPoint.x = startPoint.x + tRatio * vectorX;
-        currentPoint.y = startPoint.y + tRatio * vectorY;
+        // Calculate the new position of the interpolation point
+        const newX = startPoint.x + ratio * vectorX;
+        const newY = startPoint.y + ratio * vectorY;
     
+        // Move the current interpolation point within the bounds of the control points' vector
+        currentPoint.x = newX;
+        currentPoint.y = newY;
+    
+        // Recalculate the shared t value based on the movement of the first interpolation point
+        const sharedT = calculateInterpolationRatio(currentPoint, startPoint, endPoint);
+
+        // Update the t value for all interpolation points
+        for (let i = 0; i < interpolationPoints.length; i++) {
+          const startPoint = controlPoints[i];
+          const endPoint = controlPoints[i + 1];
+          const newT = sharedT;
+          const interpolatedX = startPoint.x + (endPoint.x - startPoint.x) * newT;
+          const interpolatedY = startPoint.y + (endPoint.y - startPoint.y) * newT;
+          interpolationPoints[i].x = interpolatedX;
+          interpolationPoints[i].y = interpolatedY;
+        }
+
         updateMidpointVectors();
         draw();
+
+        document.getElementById('tValue').innerText = `t: ${sharedT.toFixed(2)}`;
       }
     }
+
     
     
+    function calculateDistance(point1, point2) {
+      return Math.sqrt((point2.x - point1.x) ** 2 + (point2.y - point1.y) ** 2);
+    }
+
+    function calculateTotalDistance(points) {
+      let totalDistance = 0;
+      for (let i = 0; i < points.length - 1; i++) {
+        totalDistance += calculateDistance(points[i], points[i + 1]);
+      }
+      return totalDistance;
+    }
     
     function stopInterpolationPointMove() {
       document.removeEventListener('mousemove', moveInterpolationPoint);
@@ -375,17 +412,19 @@ const canvas = document.getElementById('bezierCanvas');
       const radius = Math.min(canvas.width, canvas.height) / 3;
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-
+    
       for (let i = 0; i < controlPointsCount; i++) {
         const angle = (i / controlPointsCount) * 2 * Math.PI;
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
         controlPoints.push({ x, y });
       }
-
+    
       interpolationPoints = calculateInterpolationPoints(controlPoints);
       updateMidpointVectors();
     }
+    
+    
 
     canvas.addEventListener('mousedown', handleMouseDown);
     document.getElementById('updateControlPointsButton').addEventListener('click', updateControlPoints);
