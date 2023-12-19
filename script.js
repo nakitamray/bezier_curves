@@ -13,15 +13,29 @@ const canvas = document.getElementById('bezierCanvas');
     let interpolationPoints = [];
     let midpointVectors = [];
     let drawnMidpoints = []; // Store all drawn midpoints
-
+    let isMouseDown = false;
     let draggedPoint = null;
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+      if (document.getElementById('toggleConvex').checked) {
+        // Check if the convex hull toggle is checked
+        ctx.fillStyle = '#FFEFD6'; // Set the fill color to #ffe4b6
+        ctx.beginPath();
+        ctx.moveTo(controlPoints[0].x, controlPoints[0].y);
+    
+        // Draw convex hull by connecting control points
+        for (let i = 1; i < controlPoints.length; i++) {
+          ctx.lineTo(controlPoints[i].x, controlPoints[i].y);
+        }
+    
+        ctx.closePath(); // Close the path to complete the shape
+        ctx.fill(); // Fill the shape with the specified color
+      }
+    
       // Draw vectors connecting control points
       drawVectors(controlPoints, controlVectorColor);
-  
+    
       if (document.getElementById('toggleInterpolation').checked) {
         // Draw vectors connecting interpolation points
         drawVectors(interpolationPoints, interpolationVectorColor);
@@ -32,7 +46,7 @@ const canvas = document.getElementById('bezierCanvas');
         drawRecursiveMidpoints(midpointVectors, midpointVectorColor.slice(1));
         connectPurpleVectors(midpointVectors);
       }
-  
+    
       // Draw control points
       drawPoints(controlPoints, defaultColor);
       // Draw Bezier curve
@@ -46,10 +60,11 @@ const canvas = document.getElementById('bezierCanvas');
       }
       ctx.stroke();
   
+    
       // Store the drawn midpoints for later use
       drawnMidpoints = [];
     }
-
+    
     function drawRecursiveMidpoints(points, colors) {
       // Check if there are midpoints to draw
       if (document.getElementById('toggleInterpolation').checked && points.length >= 2) {
@@ -131,11 +146,24 @@ const canvas = document.getElementById('bezierCanvas');
     function drawPoints(points, color) {
       points.forEach((point, index) => {
         ctx.fillStyle = point === draggedPoint ? draggedColor : color;
+    
+        // Draw the control points (green dots)
         ctx.beginPath();
         ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
         ctx.fill();
+    
+        // Label the control points on top of the curve
+        if (color === defaultColor) {
+          ctx.fillStyle = "#000";
+          ctx.font = "12px";
+          ctx.textAlign = "center";
+          ctx.fillText(`P${index}`, point.x, point.y - 15);
+        }
       });
     }
+    
+    
+    
 
     function drawMidpoints(points, color) {
       ctx.fillStyle = color;
@@ -169,32 +197,51 @@ const canvas = document.getElementById('bezierCanvas');
     }
 
     function handleInterpolationPointMove(event, index) {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-      const startPoint = controlPoints[index];
-      const endPoint = controlPoints[index + 1];
-  
-      // Calculate the interpolation ratio based on the current position of the interpolation point
-      interpolationRatio = calculateInterpolationRatio(interpolationPoints[index], startPoint, endPoint);
-  
-      // Move the interpolation point
-      interpolationPoints[index].x = mouseX;
-      interpolationPoints[index].y = mouseY;
-  
-      // Update the other interpolation points based on the new ratio
-      for (let i = index + 1; i < interpolationPoints.length; i++) {
-        const nextStartPoint = controlPoints[i];
-        const nextEndPoint = controlPoints[i + 1];
-        const interpolatedX = mouseX + (nextEndPoint.x - mouseX) * interpolationRatio;
-        const interpolatedY = mouseY + (nextEndPoint.y - mouseY) * interpolationRatio;
-        interpolationPoints[i].x = interpolatedX;
-        interpolationPoints[i].y = interpolatedY;
+      if (isMouseDown) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+    
+        // Get the current interpolation point and its corresponding control points
+        const currentPoint = interpolationPoints[index];
+        const startPoint = controlPoints[index];
+        const endPoint = controlPoints[index + 1];
+    
+        // Calculate the vector connecting the corresponding control points
+        const vectorX = endPoint.x - startPoint.x;
+        const vectorY = endPoint.y - startPoint.y;
+    
+        // Calculate the dot product of the vector and the mouse movement vector
+        const dotProduct = (mouseX - startPoint.x) * vectorX + (mouseY - startPoint.y) * vectorY;
+    
+        // Calculate the length of the vector
+        const vectorLengthSquared = vectorX ** 2 + vectorY ** 2;
+    
+        // Calculate the new t ratio based on the dot product
+        const tRatio = Math.max(0, Math.min(1, dotProduct / vectorLengthSquared));
+    
+        // Update the t ratio for all interpolation points
+        interpolationPoints.forEach((point, i) => {
+          const t = i / (interpolationPoints.length - 1); // Calculate default t value
+          point.t = t + (tRatio - 0.5); // Adjust t value based on the change in ratio
+        });
+    
+        // Move the current interpolation point
+        currentPoint.x = startPoint.x + tRatio * vectorX;
+        currentPoint.y = startPoint.y + tRatio * vectorY;
+    
+        updateMidpointVectors();
+        draw();
       }
-  
-      updateMidpointVectors();
-      draw();
     }
+    
+    
+    
+    function stopInterpolationPointMove() {
+      document.removeEventListener('mousemove', moveInterpolationPoint);
+      document.removeEventListener('mouseup', stopInterpolationPointMove);
+    }
+    
 
     function calculateInterpolationPoints(points) {
       const interpolationPoints = [];
@@ -257,30 +304,35 @@ const canvas = document.getElementById('bezierCanvas');
       const rect = canvas.getBoundingClientRect();
       const mouseX = event.clientX - rect.left;
       const mouseY = event.clientY - rect.top;
-  
+      isMouseDown = true;
+    
       draggedPoint = controlPoints.find(point => {
         const distance = Math.sqrt((point.x - mouseX) ** 2 + (point.y - mouseY) ** 2);
         return distance < 10;
       });
-  
+    
       if (draggedPoint) {
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
-      }
-  
-      // Check if the clicked point is an interpolation point
-      const interpolationIndex = interpolationPoints.findIndex(point => {
-        const distance = Math.sqrt((point.x - mouseX) ** 2 + (point.y - mouseY) ** 2);
-        return distance < 10;
-      });
-  
-      if (interpolationIndex !== -1) {
-        document.addEventListener('mousemove', (event) => handleInterpolationPointMove(event, interpolationIndex));
-        document.addEventListener('mouseup', () => {
-          document.removeEventListener('mousemove', (event) => handleInterpolationPointMove(event, interpolationIndex));
+      } else {
+        // Check if the clicked point is an interpolation point
+        const interpolationIndex = interpolationPoints.findIndex(point => {
+          const distance = Math.sqrt((point.x - mouseX) ** 2 + (point.y - mouseY) ** 2);
+          return distance < 10;
         });
+    
+        if (interpolationIndex !== -1) {
+          document.addEventListener('mousemove', (event) => {
+            if (isMouseDown) {
+              handleInterpolationPointMove(event, interpolationIndex);
+            }
+          });
+          document.addEventListener('mouseup', () => {
+            isMouseDown = false;
+          });
+        }
       }
-  
+    
       draw();
     }
   
@@ -304,6 +356,8 @@ const canvas = document.getElementById('bezierCanvas');
 
     function handleMouseUp() {
       draggedPoint = null;
+      isMouseDown = false;
+
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       draw();

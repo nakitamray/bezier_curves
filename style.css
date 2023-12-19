@@ -176,7 +176,7 @@ body {
   }
   
   #toggleConvex:not(:checked) + .toggle-slider {
-    background-color: #a82700;
+    background-color: #d63200;
   }
   
   #toggleConvex:not(:checked) + .toggle-slider:before {
