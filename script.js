@@ -418,6 +418,8 @@ function updateControlPoints() {
   generateDefaultControlPoints();
   drawnMidpoints = []; // Reset drawn midpoints when control points are updated
   draw();
+
+  document.getElementById('tValue').innerText = `t: 0.50`;
 }
 
 function generateDefaultControlPoints() {
