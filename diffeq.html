@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Differential Equations · Visual Math</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="lib/katex/katex.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="inner">
+      <a class="wordmark" href="index.html">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 C 6 3, 18 3, 21 20" fill="none" stroke="#e9c46a" stroke-width="2" stroke-linecap="round"/><rect x="1" y="18" width="4" height="4" fill="#efe6cf"/><rect x="19" y="18" width="4" height="4" fill="#efe6cf"/></svg>
+        Visual Math
+      </a>
+      <nav class="site-nav">
+        <a href="index.html">Bézier Curves</a>
+        <a href="surfaces.html">3D Surfaces</a>
+        <a href="diffeq.html" class="current">Differential Equations</a>
+        <a href="analysis.html">Real Analysis</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="intro">
+      <h1>Differential Equations</h1>
+      <p>A differential equation tells you which way to move from every point. Click anywhere to start a solution there and follow the arrows.</p>
+    </div>
+
+    <div class="modes" id="modes">
+      <button data-mode="slope">Slope fields</button>
+      <button data-mode="linear">Linear systems</button>
+      <button data-mode="nonlinear">Nonlinear systems</button>
+    </div>
+
+    <!-- slope fields -->
+    <div class="workspace" data-panel="slope">
+      <div class="sandbox">
+        <div class="sandbox-canvas">
+          <canvas id="slopeCanvas"></canvas>
+          <div class="corner" id="slopeReadout"></div>
+          <div class="note">click to start a solution</div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">equation</span>
+          <select id="slopePreset"></select>
+          <div class="input-row grow" style="margin:0">
+            <span class="prefix">y′ =</span>
+            <input type="text" id="slopeExpr" class="text-input" spellcheck="false">
+          </div>
+        </div>
+        <div class="sandbox-row" style="display:block">
+          <div class="field"><label for="slopeA">a</label><input type="range" id="slopeA" min="-3" max="3" step="0.05"><output data-for="slopeA"></output></div>
+          <div class="field"><label for="slopeB">b</label><input type="range" id="slopeB" min="-3" max="3" step="0.05"><output data-for="slopeB"></output></div>
+          <div class="field"><label for="slopeH">Euler step h</label><input type="range" id="slopeH" min="0.05" max="1.5" step="0.05" value="0.5"><output data-for="slopeH"></output></div>
+          <div class="error" id="slopeError"></div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">display</span>
+          <div class="options">
+            <label class="check"><input type="checkbox" id="slopeField" checked> slope field</label>
+            <label class="check"><input type="checkbox" id="slopeEuler" checked> Euler's method</label>
+            <label class="check"><input type="checkbox" id="slopeNull"> where y′ = 0</label>
+            <label class="check"><input type="checkbox" id="slopeFlow" checked> moving particles</label>
+          </div>
+          <button class="btn" id="slopeClear">Clear curves</button>
+        </div>
+      </div>
+
+      <div class="notes">
+        <section>
+          <h2>The equation</h2>
+          <p>At every point (x, y) the equation gives a slope. The little line segments are those slopes, and a solution is a curve that stays tangent to all of them.</p>
+          <div class="eq big" id="slopeFormula"></div>
+        </section>
+        <section>
+          <h2>Euler's method</h2>
+          <p>Take a step of size h in the direction the slope points, then look again. Smaller steps follow the true curve (white) more closely.</p>
+          <div class="eq" id="eulerFormula"></div>
+          <table class="num-table" id="eulerTable"></table>
+          <div class="stats" id="eulerStats"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- linear systems -->
+    <div class="workspace" data-panel="linear" hidden>
+      <div class="sandbox">
+        <div class="sandbox-canvas">
+          <canvas id="linearCanvas"></canvas>
+          <div class="corner" id="linearReadout"></div>
+          <div class="note">click to start a trajectory</div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">example</span>
+          <select id="linearPreset"></select>
+          <button class="btn" id="linearClear">Clear curves</button>
+        </div>
+        <div class="sandbox-row" style="display:block">
+          <div class="field"><label for="matA">a</label><input type="range" id="matA" min="-3" max="3" step="0.05"><output data-for="matA"></output></div>
+          <div class="field"><label for="matB">b</label><input type="range" id="matB" min="-3" max="3" step="0.05"><output data-for="matB"></output></div>
+          <div class="field"><label for="matC">c</label><input type="range" id="matC" min="-3" max="3" step="0.05"><output data-for="matC"></output></div>
+          <div class="field"><label for="matD">d</label><input type="range" id="matD" min="-3" max="3" step="0.05"><output data-for="matD"></output></div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">display</span>
+          <div class="options">
+            <label class="check"><input type="checkbox" id="linearField" checked> direction field</label>
+            <label class="check"><input type="checkbox" id="linearEigen" checked> eigenvectors</label>
+            <label class="check"><input type="checkbox" id="linearFlow" checked> moving particles</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <section>
+          <h2>The system</h2>
+          <div class="eq big" id="linearFormula"></div>
+        </section>
+        <section>
+          <h2>Eigenvalues decide everything</h2>
+          <p>Solutions along an eigenvector stay on that line and grow or shrink like e<sup>λt</sup>. Complex eigenvalues make the solutions spin.</p>
+          <div class="eq" id="linearChar"></div>
+          <div class="eq" id="linearEigenvalues"></div>
+          <div class="eq" id="linearSolution"></div>
+          <div class="callout" id="linearType"></div>
+        </section>
+        <section>
+          <h2>Trace and determinant</h2>
+          <p>Every 2 × 2 matrix is a point on this map. Click the map to jump to a matrix with that trace and determinant.</p>
+          <canvas id="traceCanvas" class="mini-canvas" style="height: 230px; cursor: crosshair"></canvas>
+        </section>
+      </div>
+    </div>
+
+    <!-- nonlinear systems -->
+    <div class="workspace" data-panel="nonlinear" hidden>
+      <div class="sandbox">
+        <div class="sandbox-canvas">
+          <canvas id="nonlinCanvas"></canvas>
+          <div class="corner" id="nonlinReadout"></div>
+          <div class="note">click to start a trajectory</div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">system</span>
+          <select id="nonlinPreset"></select>
+          <button class="btn" id="nonlinClear">Clear curves</button>
+        </div>
+        <div class="sandbox-row" style="display:block">
+          <div class="input-row"><span class="prefix">x′ =</span><input type="text" id="nonlinX" class="text-input" spellcheck="false"></div>
+          <div class="input-row"><span class="prefix">y′ =</span><input type="text" id="nonlinY" class="text-input" spellcheck="false"></div>
+          <div class="error" id="nonlinError"></div>
+          <div class="field"><label for="nonlinA">a</label><input type="range" id="nonlinA" min="-3" max="3" step="0.05"><output data-for="nonlinA"></output></div>
+          <div class="field"><label for="nonlinB">b</label><input type="range" id="nonlinB" min="-3" max="3" step="0.05"><output data-for="nonlinB"></output></div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">display</span>
+          <div class="options">
+            <label class="check"><input type="checkbox" id="nonlinField" checked> direction field</label>
+            <label class="check"><input type="checkbox" id="nonlinNull" checked> nullclines</label>
+            <label class="check"><input type="checkbox" id="nonlinFlow" checked> moving particles</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <section>
+          <h2>The system</h2>
+          <div class="eq big" id="nonlinFormula"></div>
+          <p class="sub">Nullclines: x′ = 0 is drawn in cream, y′ = 0 in yellow. Equilibria sit where they cross.</p>
+        </section>
+        <section>
+          <h2>Linearizing at each equilibrium</h2>
+          <p>Near an equilibrium the system acts like x′ = Jx, where J is the Jacobian. Its eigenvalues give the local picture, just like the linear case.</p>
+          <div class="eq" id="nonlinJacobian"></div>
+          <table class="num-table" id="nonlinTable"></table>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="lib/katex/katex.min.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/diffeq.js"></script>
+</body>
+</html>
