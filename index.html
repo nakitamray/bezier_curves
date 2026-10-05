@@ -4,36 +4,86 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bezier Curve Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1 id = "title">Bezier Curve Tool</h1>
-  <div id = "content">
-    <canvas id="bezierCanvas" width="600" height="400"></canvas>
-    <div id="controlBox">
-      <div id="matrix_notation">
-        <h3>Matrix Notation</h3>
-        <div id="matrix_content"></div>
-        <div id="tValue">t: 0.50</div>
-      </div>
-      <hr>
-      <div id="controlPointsContainer" class="container">
-        <input type="number" id="controlPointsInput" value="3" min="2" max="7" step="1">
-        <button id="updateControlPointsButton">Update Control Points</button>
-      </div>
-    
-      <div id = "interpolationContainer" class="toggleContainer container">
-        <input type="checkbox" id="toggleInterpolation" checked>
-        <label class="toggle-slider" for="toggleInterpolation"></label>
-        <span>Show Interpolation Points</span>
-      </div>
-      <div id = "convexContainer" class="toggleContainer container">
-        <input type="checkbox" id="toggleConvex">
-        <label class="toggle-slider" for="toggleConvex"></label>
-        <span>Show Convex Hull</span>
-      </div>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M4 26 C 8 4, 24 4, 28 26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="4" cy="26" r="2.5"/>
+        <circle cx="28" cy="26" r="2.5"/>
+      </svg>
+      <span>Bezier Curve Tool</span>
     </div>
-  </div>
-  <script src="script.js"></script>
+    <nav class="tabs">
+      <a class="tab active" href="#">Bézier Curves</a>
+      <span class="tab soon" title="coming soon">3D Surfaces</span>
+      <span class="tab soon" title="coming soon">Transformations</span>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="stage">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="bezierCanvas"></canvas>
+        <div class="readout" id="readout"></div>
+        <div class="hint">drag points &middot; double-click empty space to add &middot; double-click a point to remove</div>
+      </div>
+
+      <div class="timeline">
+        <button id="playButton" class="icon-btn" aria-label="play">
+          <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <label for="tSlider" class="t-label">t = <span id="tValue">0.50</span></label>
+        <input type="range" id="tSlider" min="0" max="1" step="0.001" value="0.5">
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="card">
+        <div class="card-head">
+          <h3>Control Points</h3>
+          <span class="badge" id="degreeBadge">degree 3</span>
+        </div>
+        <div class="row">
+          <div class="stepper">
+            <button id="removePoint" aria-label="remove point">&minus;</button>
+            <span id="pointCount">4</span>
+            <button id="addPoint" aria-label="add point">+</button>
+          </div>
+          <button id="resetButton" class="ghost">Reset</button>
+          <button id="randomButton" class="ghost">Random</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Display</h3></div>
+        <label class="switch"><input type="checkbox" id="toggleConstruction" checked><span class="slider"></span>de Casteljau construction</label>
+        <label class="switch"><input type="checkbox" id="toggleTangent" checked><span class="slider"></span>Tangent vector B′(t)</label>
+        <label class="switch"><input type="checkbox" id="toggleConvex"><span class="slider"></span>Convex hull</label>
+        <label class="switch"><input type="checkbox" id="toggleGrid" checked><span class="slider"></span>Grid</label>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Matrix Form</h3></div>
+        <p class="formula">B(t) = T &middot; M &middot; P</p>
+        <div id="matrixContent" class="matrix-scroll"></div>
+        <div id="resultContent" class="result"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Bernstein Basis</h3></div>
+        <canvas id="basisCanvas"></canvas>
+        <p class="caption">each curve is the weight its control point gets at t. they always add up to 1.</p>
+      </div>
+    </aside>
+  </main>
+
+  <script src="js/math.js"></script>
+  <script src="js/bezier.js"></script>
 </body>
 </html>
