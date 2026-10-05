@@ -3,86 +3,101 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bezier Curve Tool</title>
+  <title>Bézier Curves · Visual Math</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="lib/katex/katex.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
-        <path d="M4 26 C 8 4, 24 4, 28 26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-        <circle cx="4" cy="26" r="2.5"/>
-        <circle cx="28" cy="26" r="2.5"/>
-      </svg>
-      <span>Bezier Curve Tool</span>
+  <header class="site-header">
+    <div class="inner">
+      <a class="wordmark" href="index.html">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 C 6 3, 18 3, 21 20" fill="none" stroke="#e9c46a" stroke-width="2" stroke-linecap="round"/><rect x="1" y="18" width="4" height="4" fill="#efe6cf"/><rect x="19" y="18" width="4" height="4" fill="#efe6cf"/></svg>
+        Visual Math
+      </a>
+      <nav class="site-nav">
+        <a href="index.html" class="current">Bézier Curves</a>
+        <a href="surfaces.html">3D Surfaces</a>
+        <a href="diffeq.html">Differential Equations</a>
+        <a href="analysis.html">Real Analysis</a>
+      </nav>
     </div>
-    <nav class="tabs">
-      <a class="tab active" href="#">Bézier Curves</a>
-      <span class="tab soon" title="coming soon">3D Surfaces</span>
-      <span class="tab soon" title="coming soon">Transformations</span>
-    </nav>
   </header>
 
-  <main class="layout">
-    <section class="stage">
-      <div class="canvas-wrap" id="canvasWrap">
-        <canvas id="bezierCanvas"></canvas>
-        <div class="readout" id="readout"></div>
-        <div class="hint">drag points &middot; double-click empty space to add &middot; double-click a point to remove</div>
-      </div>
+  <main class="page">
+    <div class="intro">
+      <h1>Bézier Curves</h1>
+      <p>A Bézier curve is a weighted average of its control points. Drag a point and watch which parts of the equations it touches.</p>
+    </div>
 
-      <div class="timeline">
-        <button id="playButton" class="icon-btn" aria-label="play">
-          <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
-        </button>
-        <label for="tSlider" class="t-label">t = <span id="tValue">0.50</span></label>
-        <input type="range" id="tSlider" min="0" max="1" step="0.001" value="0.5">
-      </div>
-    </section>
-
-    <aside class="panel">
-      <div class="card">
-        <div class="card-head">
-          <h3>Control Points</h3>
-          <span class="badge" id="degreeBadge">degree 3</span>
+    <div class="workspace">
+      <div class="sandbox">
+        <div class="sandbox-canvas">
+          <canvas id="bezierCanvas"></canvas>
+          <div class="corner" id="readout"></div>
+          <div class="note">drag points · double-click to add or remove</div>
         </div>
-        <div class="row">
-          <div class="stepper">
-            <button id="removePoint" aria-label="remove point">&minus;</button>
-            <span id="pointCount">4</span>
-            <button id="addPoint" aria-label="add point">+</button>
+
+        <div class="sandbox-row">
+          <button id="playButton" class="play" aria-label="play"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4v16l13-8z"/></svg></button>
+          <span class="label">t</span>
+          <input type="range" id="tSlider" class="grow" min="0" max="1" step="0.001" value="0.5">
+          <span class="value" id="tValue">0.50</span>
+        </div>
+
+        <div class="sandbox-row">
+          <span class="label">points</span>
+          <div class="counter">
+            <button id="removePoint" class="btn square" aria-label="remove point">−</button>
+            <span class="value" id="pointCount">4</span>
+            <button id="addPoint" class="btn square" aria-label="add point" title="raises the degree without changing the curve">+</button>
           </div>
-          <button id="resetButton" class="ghost">Reset</button>
-          <button id="randomButton" class="ghost">Random</button>
+          <button id="resetButton" class="btn">Reset</button>
+          <button id="randomButton" class="btn">Random</button>
+        </div>
+
+        <div class="sandbox-row">
+          <span class="label">display</span>
+          <div class="options">
+            <label class="check"><input type="checkbox" id="togglePolygon" checked> control polygon</label>
+            <label class="check"><input type="checkbox" id="toggleConstruction" checked> de Casteljau steps</label>
+            <label class="check"><input type="checkbox" id="toggleTangent" checked> tangent B′(t)</label>
+            <label class="check"><input type="checkbox" id="toggleConvex"> convex hull</label>
+            <label class="check"><input type="checkbox" id="toggleGrid" checked> grid</label>
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-head"><h3>Display</h3></div>
-        <label class="switch"><input type="checkbox" id="toggleConstruction" checked><span class="slider"></span>de Casteljau construction</label>
-        <label class="switch"><input type="checkbox" id="toggleTangent" checked><span class="slider"></span>Tangent vector B′(t)</label>
-        <label class="switch"><input type="checkbox" id="toggleConvex"><span class="slider"></span>Convex hull</label>
-        <label class="switch"><input type="checkbox" id="toggleGrid" checked><span class="slider"></span>Grid</label>
-      </div>
+      <div class="notes">
+        <section>
+          <h2>Bernstein form</h2>
+          <p>Each control point gets a weight from a Bernstein polynomial. The weights always add up to 1, so B(t) is an average of the points.</p>
+          <div class="eq small" id="bernsteinGeneral"></div>
+          <div class="eq" id="bernsteinExpanded"></div>
+          <table class="num-table" id="bernsteinTable"></table>
+          <canvas id="basisCanvas" class="mini-canvas" style="margin-top: 14px"></canvas>
+        </section>
 
-      <div class="card">
-        <div class="card-head"><h3>Matrix Form</h3></div>
-        <p class="formula">B(t) = T &middot; M &middot; P</p>
-        <div id="matrixContent" class="matrix-scroll"></div>
-        <div id="resultContent" class="result"></div>
-      </div>
+        <section>
+          <h2>Matrix form</h2>
+          <p>Expanding the Bernstein polynomials into powers of t gives the same curve as a product of three matrices.</p>
+          <div class="eq big" id="matrixEq"></div>
+          <div class="eq" id="matrixResult"></div>
+        </section>
 
-      <div class="card">
-        <div class="card-head"><h3>Bernstein Basis</h3></div>
-        <canvas id="basisCanvas"></canvas>
-        <p class="caption">each curve is the weight its control point gets at t. they always add up to 1.</p>
+        <section>
+          <h2>Tangent</h2>
+          <p>The derivative is another Bézier curve, one degree lower, built from the differences between neighbouring points.</p>
+          <div class="eq small" id="derivativeEq"></div>
+        </section>
       </div>
-    </aside>
+    </div>
   </main>
 
+  <script src="lib/katex/katex.min.js"></script>
+  <script src="js/common.js"></script>
   <script src="js/math.js"></script>
   <script src="js/bezier.js"></script>
 </body>
