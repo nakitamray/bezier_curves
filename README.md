@@ -1,65 +1,59 @@
-# Bezier Curve Tool
+# Visual Math
 
-An interactive tool for visualizing Bézier curves and the linear algebra behind them. Drag the control points around and watch the curve, the de Casteljau construction, and the matrix form all update live.
+Interactive visualizations for linear algebra, multivariable calculus, differential equations and real analysis. Not a study guide, just a place to play with shapes and watch the math change with them.
 
-This is the first piece of a bigger visual math playground. Next up: 3D surfaces from Calc 3 and linear transformations.
+Everything runs in the browser with plain HTML, CSS and JavaScript. No build step.
 
-## Features
+## Pages
 
-- **Drag control points** and the curve updates in real time (works with mouse and touch)
-- **t slider + play button** to sweep a point along the curve (space bar toggles play)
-- **de Casteljau construction** draws every level of repeated linear interpolation at the current t
-- **Tangent vector B′(t)**, computed from the last two de Casteljau points: B′(t) = n(b₁ − b₀)
-- **Convex hull** of the control points (the curve always stays inside it)
-- **Matrix form** `B(t) = T · M · P` with the actual numbers for the current curve
-- **Bernstein basis plot** showing how much weight each control point gets at t
-- **Degree elevation**: the + button adds a control point *without* changing the curve
-- Double-click empty space to add a point, double-click a point to remove it
+**Bézier Curves** (`index.html`)
+- drag control points, sweep t, watch the de Casteljau construction
+- Bernstein form with a table of weights at the current t
+- matrix form `B(t) = T · M · P`
+- touching a point highlights its term in every equation, its row in M and P, and its basis curve
+- degree elevation, tangent vector, convex hull
 
-## The math
+**3D Surfaces** (`surfaces.html`)
+- graphs `z = f(x, y)`: type your own function or use a preset, then move parameters a and b. Shows partial derivatives as slopes of traces, the gradient, the tangent plane, directional derivatives, level curves and the second derivative test (with a Newton's method button to find critical points)
+- Bézier surfaces: a bicubic patch you can sculpt by dragging control points, with the matrix form `z = U M Z Mᵀ Vᵀ` and the "surface made of curves" view
+- triple integrals: balls, cylinders, cones, ice cream cones and paraboloids in rectangular, cylindrical and spherical coordinates. The Riemann sum cells are drawn in 3D so you can see how each coordinate system chops up the region
 
-A degree-n Bézier curve with control points P₀ … Pₙ is
+**Differential Equations** (`diffeq.html`)
+- slope fields with click-to-solve curves and Euler's method step by step
+- linear systems `x' = Ax` with eigenvalues, eigenvectors, the general solution and a clickable trace-determinant map
+- nonlinear systems (pendulum, predator-prey, Van der Pol, competing species or your own) with nullclines and automatically found and classified equilibria
 
-```
-B(t) = Σ C(n,i) (1−t)^(n−i) t^i · Pᵢ ,   0 ≤ t ≤ 1
-```
-
-Expanding the Bernstein polynomials into powers of t turns it into a matrix product:
-
-```
-B(t) = [1  t  t²  …  tⁿ] · M · P
-```
-
-where `P` is the (n+1)×2 matrix of control points and `M` is the characteristic matrix with entries
-
-```
-M[j][i] = (−1)^(j−i) · C(n,i) · C(n−i, j−i)    for i ≤ j, else 0
-```
-
-For a cubic, that's the familiar
-
-```
- 1   0   0   0
--3   3   0   0
- 3  -6   3   0
--1   3  -3   1
-```
+**Real Analysis** (`analysis.html`)
+- ε–δ limits: pick ε, see the largest δ that works (or why none does)
+- sequences: ε–N convergence
+- upper/lower Darboux sums and left/right/midpoint Riemann sums
+- pointwise vs uniform convergence of function sequences
 
 ## Running it
 
-No build step. Open `index.html` in a browser, or serve the folder:
+Open `index.html` in a browser, or serve the folder:
 
 ```
 python3 -m http.server
 ```
 
-then go to http://localhost:8000.
+and go to http://localhost:8000.
 
-## Project layout
+## Layout
 
 ```
-index.html     page layout
-style.css      styles
-js/math.js     bezier math (bernstein, matrix form, de casteljau, convex hull)
-js/bezier.js   canvas drawing + interaction
+index.html, surfaces.html, diffeq.html, analysis.html
+style.css
+js/common.js     shared helpers: 2d plotting, sliders, katex, an expression parser
+js/math.js       bezier math (bernstein, matrix form, de casteljau, convex hull)
+js/view3d.js     small 3d renderer on a 2d canvas (painter's algorithm)
+js/bezier.js     bezier page
+js/surfaces.js   3d surfaces page
+js/diffeq.js     differential equations page
+js/analysis.js   real analysis page
+lib/katex/       KaTeX for rendering equations (MIT license)
 ```
+
+## Typing your own functions
+
+Inputs accept things like `sin(x)*y`, `x^2 - 3xy`, `exp(-(x^2 + y^2))`, `|x|`. Supported functions: sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, exp, ln, log, sqrt, abs, sign, floor, min, max, plus the constants pi and e.
