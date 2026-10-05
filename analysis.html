@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real Analysis · Visual Math</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="lib/katex/katex.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="inner">
+      <a class="wordmark" href="index.html">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 C 6 3, 18 3, 21 20" fill="none" stroke="#e9c46a" stroke-width="2" stroke-linecap="round"/><rect x="1" y="18" width="4" height="4" fill="#efe6cf"/><rect x="19" y="18" width="4" height="4" fill="#efe6cf"/></svg>
+        Visual Math
+      </a>
+      <nav class="site-nav">
+        <a href="index.html">Bézier Curves</a>
+        <a href="surfaces.html">3D Surfaces</a>
+        <a href="diffeq.html">Differential Equations</a>
+        <a href="analysis.html" class="current">Real Analysis</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="intro">
+      <h1>Real Analysis</h1>
+      <p>The definitions behind calculus, drawn out. Pick an ε and see what it takes to win the game.</p>
+    </div>
+
+    <div class="modes" id="modes">
+      <button data-mode="limits">ε–δ limits</button>
+      <button data-mode="sequences">Sequences</button>
+      <button data-mode="riemann">Riemann sums</button>
+      <button data-mode="uniform">Uniform convergence</button>
+    </div>
+
+    <!-- epsilon delta -->
+    <div class="workspace" data-panel="limits">
+      <div class="sandbox">
+        <div class="sandbox-canvas">
+          <canvas id="limitCanvas"></canvas>
+          <div class="corner" id="limitReadout"></div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">function</span>
+          <select id="limitPreset"></select>
+          <div class="input-row grow" style="margin:0">
+            <span class="prefix">f(x) =</span>
+            <input type="text" id="limitExpr" class="text-input" spellcheck="false">
+          </div>
+        </div>
+        <div class="sandbox-row" style="display:block">
+          <div class="field"><label for="limitA">point a</label><input type="range" id="limitA" min="-3" max="3" step="0.01"><output data-for="limitA"></output></div>
+          <div class="field"><label for="limitEps">ε</label><input type="range" id="limitEps" min="0.01" max="1.5" step="0.01" value="0.5"><output data-for="limitEps"></output></div>
+          <div class="field"><label for="limitL">guess L</label><input type="range" id="limitL" min="-4" max="4" step="0.01"><output data-for="limitL"></output></div>
+          <div class="error" id="limitError"></div>
+        </div>
+        <div class="sandbox-row">
+          <button class="btn" id="limitSnap">Set L to the actual limit</button>
+          <label class="check"><input type="checkbox" id="limitZoom" checked> zoom in with ε</label>
+        </div>
+      </div>
+
+      <div class="notes">
+        <section>
+          <h2>The definition</h2>
+          <div class="eq" id="limitDef"></div>
+          <p>Someone hands you an ε (the yellow band). You win if you can find a δ (the cream band) so that every x inside it, except a itself, lands inside the yellow band.</p>
+        </section>
+        <section>
+          <h2>Right now</h2>
+          <div class="eq" id="limitNow"></div>
+          <div class="callout" id="limitVerdict"></div>
+        </section>
+        <section>
+          <h2>Smaller ε, smaller δ</h2>
+          <table class="num-table" id="limitTable"></table>
+        </section>
+      </div>
+    </div>
+
+    <!-- sequences -->
+    <div class="workspace" data-panel="sequences" hidden>
+      <div class="sandbox">
+        <div class="sandbox-canvas">
+          <canvas id="seqCanvas"></canvas>
+          <div class="corner" id="seqReadout"></div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">sequence</span>
+          <select id="seqPreset"></select>
+          <div class="input-row grow" style="margin:0">
+            <span class="prefix">aₙ =</span>
+            <input type="text" id="seqExpr" class="text-input" spellcheck="false">
+          </div>
+        </div>
+        <div class="sandbox-row" style="display:block">
+          <div class="field"><label for="seqEps">ε</label><input type="range" id="seqEps" min="0.005" max="0.5" step="0.005" value="0.1"><output data-for="seqEps"></output></div>
+          <div class="field"><label for="seqCount">terms shown</label><input type="range" id="seqCount" min="10" max="200" step="1" value="60"><output data-for="seqCount"></output></div>
+          <div class="error" id="seqError"></div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <section>
+          <h2>The sequence</h2>
+          <div class="eq big" id="seqFormula"></div>
+        </section>
+        <section>
+          <h2>Convergence</h2>
+          <div class="eq" id="seqDef"></div>
+          <p>For every ε there has to be a point N after which the sequence never leaves the band. Before N anything goes.</p>
+          <div class="callout" id="seqVerdict"></div>
+        </section>
+        <section>
+          <h2>How N grows as ε shrinks</h2>
+          <table class="num-table" id="seqTable"></table>
+        </section>
+      </div>
+    </div>
+
+    <!-- riemann / darboux sums -->
+    <div class="workspace" data-panel="riemann" hidden>
+      <div class="sandbox">
+        <div class="sandbox-canvas">
+          <canvas id="riemannCanvas"></canvas>
+          <div class="corner" id="riemannReadout"></div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">function</span>
+          <select id="riemannPreset"></select>
+          <div class="input-row grow" style="margin:0">
+            <span class="prefix">f(x) =</span>
+            <input type="text" id="riemannExpr" class="text-input" spellcheck="false">
+          </div>
+        </div>
+        <div class="sandbox-row" style="display:block">
+          <div class="field"><label for="riemannN">pieces n</label><input type="range" id="riemannN" min="1" max="100" step="1" value="6"><output data-for="riemannN"></output></div>
+          <div class="field"><label for="riemannA">from a</label><input type="range" id="riemannA" min="-4" max="4" step="0.05"><output data-for="riemannA"></output></div>
+          <div class="field"><label for="riemannB">to b</label><input type="range" id="riemannB" min="-4" max="4" step="0.05"><output data-for="riemannB"></output></div>
+          <div class="error" id="riemannError"></div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">sum</span>
+          <div class="options">
+            <label class="check"><input type="radio" name="sumType" value="darboux" checked> upper + lower</label>
+            <label class="check"><input type="radio" name="sumType" value="left"> left</label>
+            <label class="check"><input type="radio" name="sumType" value="right"> right</label>
+            <label class="check"><input type="radio" name="sumType" value="mid"> midpoint</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <section>
+          <h2>Upper and lower sums</h2>
+          <p>On each piece, the lower sum uses the smallest value of f and the upper sum uses the largest. The real area is stuck between them.</p>
+          <div class="eq" id="riemannDef"></div>
+          <div class="stats" id="riemannStats"></div>
+        </section>
+        <section>
+          <h2>Squeezing the gap</h2>
+          <p>f is integrable when the gap U − L can be made as small as you like. The yellow dot is the current n.</p>
+          <canvas id="gapCanvas" class="mini-canvas"></canvas>
+        </section>
+      </div>
+    </div>
+
+    <!-- uniform convergence -->
+    <div class="workspace" data-panel="uniform" hidden>
+      <div class="sandbox">
+        <div class="sandbox-canvas">
+          <canvas id="uniformCanvas"></canvas>
+          <div class="corner" id="uniformReadout"></div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">sequence</span>
+          <select id="uniformPreset"></select>
+        </div>
+        <div class="sandbox-row" style="display:block">
+          <div class="field"><label for="uniformN">n</label><input type="range" id="uniformN" min="1" max="60" step="1" value="5"><output data-for="uniformN"></output></div>
+          <div class="field"><label for="uniformEps">ε</label><input type="range" id="uniformEps" min="0.02" max="0.5" step="0.01" value="0.15"><output data-for="uniformEps"></output></div>
+        </div>
+        <div class="sandbox-row">
+          <span class="label">display</span>
+          <div class="options">
+            <label class="check"><input type="checkbox" id="uniformTrail" checked> earlier terms</label>
+            <label class="check"><input type="checkbox" id="uniformTube" checked> ε-tube around the limit</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <section>
+          <h2>The functions</h2>
+          <div class="eq big" id="uniformFormula"></div>
+        </section>
+        <section>
+          <h2>Pointwise vs uniform</h2>
+          <div class="eq small" id="uniformDefs"></div>
+          <p>Uniform means one n works for every x at once: the whole graph of f<sub>n</sub> fits inside the ε-tube.</p>
+          <div class="eq" id="uniformSup"></div>
+          <div class="callout" id="uniformVerdict"></div>
+        </section>
+        <section>
+          <h2>The biggest gap, n by n</h2>
+          <canvas id="supCanvas" class="mini-canvas"></canvas>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="lib/katex/katex.min.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/analysis.js"></script>
+</body>
+</html>
