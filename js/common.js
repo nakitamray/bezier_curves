@@ -491,6 +491,7 @@ function compileExpr(src, vars) {
 const PREC = { '+': 1, '-': 1, '*': 2, '/': 2, neg: 2, '^': 4 };
 
 function prec(n) {
+  if (n.type === 'paren') return prec(n.e);
   if (n.type === 'bin') return PREC[n.op];
   if (n.type === 'neg') return PREC.neg;
   if (n.type === 'num' && n.value < 0) return PREC.neg;
@@ -506,6 +507,7 @@ function isNumberish(n, params) {
 }
 
 function isNegative(n, params) {
+  if (n.type === 'paren') return isNegative(n.e, params);
   if (n.type === 'num') return n.value < 0;
   if (n.type === 'var' && params && n.name in params) return params[n.name] < -1e-9;
   if (n.type === 'neg') return true;
@@ -517,6 +519,7 @@ function isNegative(n, params) {
 function negated(n, params) {
   if (n.type === 'num') return { type: 'num', value: -n.value };
   if (n.type === 'var') return { ...n, flip: true };
+  if (n.type === 'paren') return negated(n.e, params);
   if (n.type === 'neg') return n.a;
   if (n.type === 'bin') return { ...n, a: negated(n.a, params) };
   return n;
@@ -536,6 +539,7 @@ function toTex(n, params = {}, highlight = null) {
     }
     case 'paren': return T(n.e);
     case 'neg': {
+      if (isNegative(n.a, params)) return T(negated(n.a, params));
       const inner = T(n.a);
       return '-' + (prec(n.a) <= PREC['+'] ? wrap(inner) : inner);
     }
@@ -572,10 +576,12 @@ function toTex(n, params = {}, highlight = null) {
       let ls = T(a);
       let rs = T(b);
       if (prec(a) < PREC['*']) ls = wrap(ls);
-      if (prec(b) <= PREC['*'] || isNegative(b, params)) rs = wrap(rs);
-      const juxtapose = !isNumberish(b, params) || (b.type === 'bin' && b.op === '^' && !isNumberish(b.a, params));
-      if (isNumberish(a, params) && isNumberish(b, params)) return `${ls} \\cdot ${rs}`;
-      return juxtapose ? `${ls}\\,${rs}` : `${ls} \\cdot ${rs}`;
+      if (prec(b) < PREC['*'] || isNegative(b, params)) rs = wrap(rs);
+      // 3x, xy, 2x^2 are written side by side. numbers on the right get a dot
+      const startsWithNumber = m => isNumberish(m, params) || (m.type === 'bin' && (m.op === '*' || m.op === '^') && startsWithNumber(m.a));
+      if (startsWithNumber(b)) return `${ls} \\cdot ${rs}`;
+      const roomy = b.type === 'func' || b.type === 'paren' || rs.startsWith('\\left');
+      return roomy ? `${ls}\\,${rs}` : `${ls}${rs}`;
     }
   }
   return '';
