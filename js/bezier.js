@@ -6,24 +6,33 @@ const MAX_POINTS = 7;
 const HIT_RADIUS = 14;
 const TANGENT_SCALE = 0.25; // B'(t) gets long fast so draw it smaller
 
-const plot = new Plot2D(canvas, { xmin: -6, xmax: 6, ymin: -4.5, ymax: 4.5 }, { onResize: () => render() });
-const basis = new Plot2D(basisCanvas, { xmin: -0.03, xmax: 1.03, ymin: -0.08, ymax: 1.08 }, { equal: false, onResize: () => render() });
-
 const state = {
   points: [],
   t: 0.5,
   playing: false,
   direction: 1,
   dragIndex: -1,
+  dragT: false,
   hoverIndex: -1,
+  hoverT: false,
   rowIndex: -1 // hovered row in the bernstein table
 };
+
+const plot = new Plot2D(canvas, { xmin: -10, xmax: 10, ymin: -7, ymax: 7 }, {
+  onResize: () => render(),
+  panZoom: true,
+  claim: pos => hitTest(pos) !== -1 || hitCurvePoint(pos),
+  onView: () => renderSandbox(),
+  probe: w => (state.hoverIndex !== -1 || state.hoverT ? '' : `(${fmt(w.x)}, ${fmt(w.y)})`)
+});
+const basis = new Plot2D(basisCanvas, { xmin: -0.03, xmax: 1.03, ymin: -0.08, ymax: 1.12 }, { equal: false, onResize: () => render() });
 
 const toggles = {
   polygon: document.getElementById('togglePolygon'),
   construction: document.getElementById('toggleConstruction'),
   tangent: document.getElementById('toggleTangent'),
   convex: document.getElementById('toggleConvex'),
+  ticks: document.getElementById('toggleTrail'),
   grid: document.getElementById('toggleGrid')
 };
 
@@ -38,33 +47,21 @@ function pointColor(i) {
   return TONES[i % TONES.length];
 }
 
-// ---------- default shapes ----------
+// ---------- shapes ----------
 
-function defaultPoints(count) {
-  if (count === 4) {
-    return [{ x: -4, y: -2 }, { x: -2.5, y: 3 }, { x: 2.5, y: 3 }, { x: 4, y: -2 }];
+const shapes = {
+  arch: () => [{ x: -4, y: -2 }, { x: -2.5, y: 3 }, { x: 2.5, y: 3 }, { x: 4, y: -2 }],
+  s: () => [{ x: -4.5, y: -2.5 }, { x: -1, y: 4.5 }, { x: 1, y: -4.5 }, { x: 4.5, y: 2.5 }],
+  loop: () => [{ x: -3, y: -2.5 }, { x: 6, y: 3.5 }, { x: -6, y: 3.5 }, { x: 3, y: -2.5 }],
+  wave: () => [-5, -3, -1, 1, 3, 5].map((x, i) => ({ x, y: i === 0 || i === 5 ? 0 : i % 2 ? 4 : -4 })),
+  random: () => {
+    const n = state.points.length || 4;
+    return Array.from({ length: n }, (_, i) => ({
+      x: -4.5 + (9 * i) / (n - 1) + (Math.random() - 0.5),
+      y: (Math.random() - 0.5) * 8
+    }));
   }
-  const pts = [];
-  const n = count - 1;
-  for (let i = 0; i <= n; i++) {
-    const x = -4.5 + (9 * i) / n;
-    let y;
-    if (i === 0 || i === n) y = -2;
-    else y = i % 2 === 1 ? 3 : -0.5;
-    pts.push({ x, y });
-  }
-  return pts;
-}
-
-function randomPoints(count) {
-  const pts = [];
-  for (let i = 0; i < count; i++) {
-    const x = -4.5 + (9 * i) / (count - 1) + (Math.random() - 0.5);
-    const y = (Math.random() - 0.5) * 7;
-    pts.push({ x, y });
-  }
-  return pts;
-}
+};
 
 // raising the degree by one gives the exact same curve with one extra control point
 function elevateDegree(points) {
@@ -110,12 +107,37 @@ function drawConstruction(levels) {
   }
 }
 
+// tick marks at t = 0, 0.1, ..., 1. uneven spacing means the curve speeds up and slows down
+function drawTicks() {
+  const ctx = plot.ctx;
+  for (let k = 0; k <= 10; k++) {
+    const t = k / 10;
+    const levels = deCasteljau(state.points, t);
+    const p = levels[levels.length - 1][0];
+    const d = tangentAt(state.points, t);
+    const s = plot.toScreen(p.x, p.y);
+    const len = Math.hypot(d.x, d.y) || 1;
+    const nx = -d.y / len, ny = -d.x / len; // normal, in screen orientation
+    ctx.strokeStyle = COLORS.cream;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(s.x - nx * 6, s.y - ny * 6);
+    ctx.lineTo(s.x + nx * 6, s.y + ny * 6);
+    ctx.stroke();
+    ctx.fillStyle = COLORS.muted;
+    ctx.font = '10px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t.toFixed(1), s.x + nx * 16, s.y + ny * 16);
+  }
+}
+
 function drawControlPoints() {
   const active = activeIndex();
   state.points.forEach((p, i) => {
     const isActive = i === active;
-    if (isActive) plot.dot(p.x, p.y, 13, COLORS.yellowDim);
-    plot.dot(p.x, p.y, isActive ? 7 : 6, COLORS.bg, isActive ? COLORS.yellowBright : pointColor(i));
+    if (isActive) plot.dot(p.x, p.y, 15, COLORS.yellowDim);
+    plot.dot(p.x, p.y, isActive ? 7.5 : 6.5, COLORS.bg, isActive ? COLORS.yellowBright : pointColor(i), 2.5);
     label('P' + i, p, isActive ? COLORS.yellowBright : pointColor(i), -1);
   });
 }
@@ -125,44 +147,55 @@ function label(str, p, color, side) {
   const s = plot.toScreen(p.x, p.y);
   const ctx = plot.ctx;
   ctx.fillStyle = color;
-  ctx.font = '500 13px "IBM Plex Sans", sans-serif';
+  ctx.font = '600 13px "IBM Plex Sans", sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = side < 0 ? 'bottom' : 'top';
-  ctx.fillText(str, s.x + 9, s.y + side * 7);
+  ctx.fillText(str, s.x + 10, s.y + side * 8);
 }
 
-function renderSandbox(levels, point, tangent) {
+function curvePoint(t) {
+  const levels = deCasteljau(state.points, t);
+  return levels[levels.length - 1][0];
+}
+
+function renderSandbox() {
+  if (!state.points.length) return;
+  const levels = deCasteljau(state.points, state.t);
+  const point = levels[levels.length - 1][0];
+  const tangent = tangentAt(state.points, state.t);
+
   plot.begin();
-  if (toggles.grid.checked) plot.grid({ step: 1 });
+  if (toggles.grid.checked) plot.grid();
   if (toggles.convex.checked) drawConvexHull();
   if (toggles.polygon.checked) plot.path(state.points, COLORS.creamDim, 1, [5, 5]);
 
-  plot.path(sampleCurve(state.points, 0, 1, 200), 'rgba(250, 250, 250, 0.22)', 2.5);
-  plot.path(sampleCurve(state.points, 0, state.t, Math.max(2, Math.round(200 * state.t))), COLORS.white, 2.5);
+  plot.path(sampleCurve(state.points, 0, 1, 300), 'rgba(250, 250, 250, 0.22)', 3);
+  plot.path(sampleCurve(state.points, 0, state.t, Math.max(2, Math.round(300 * state.t))), COLORS.white, 3);
 
   // while a point is active, show the part of the curve it pulls on the most
   const active = activeIndex();
   if (active !== -1) {
     const n = state.points.length - 1;
     const peak = n === 0 ? 0 : active / n;
-    const lo = Math.max(0, peak - 0.25);
-    const hi = Math.min(1, peak + 0.25);
-    plot.path(sampleCurve(state.points, lo, hi, 80), 'rgba(245, 211, 107, 0.55)', 5);
+    plot.path(sampleCurve(state.points, Math.max(0, peak - 0.22), Math.min(1, peak + 0.22), 80), 'rgba(245, 211, 107, 0.5)', 7);
   }
 
+  if (toggles.ticks.checked) drawTicks();
   if (toggles.construction.checked) drawConstruction(levels);
   if (toggles.tangent.checked) {
-    plot.arrow(point.x, point.y, tangent.x * TANGENT_SCALE, tangent.y * TANGENT_SCALE, COLORS.yellow, 2, 9);
+    plot.arrow(point.x, point.y, tangent.x * TANGENT_SCALE, tangent.y * TANGENT_SCALE, COLORS.yellow, 2, 10);
   }
 
   drawControlPoints();
 
-  plot.dot(point.x, point.y, 6, COLORS.yellow, COLORS.bg, 2);
-  label('B(t)', point, COLORS.yellow, 1);
+  const big = state.dragT || state.hoverT;
+  if (big) plot.dot(point.x, point.y, 16, COLORS.yellowDim);
+  plot.dot(point.x, point.y, big ? 8 : 7, COLORS.yellow, COLORS.bg, 2.5);
+  label(`B(${state.t.toFixed(2)})`, point, COLORS.yellow, 1);
 
   const speed = Math.hypot(tangent.x, tangent.y);
   document.getElementById('readout').innerHTML =
-    `B(t) = <b>(${fmt(point.x)}, ${fmt(point.y)})</b> &nbsp; |B′(t)| = <b>${fmt(speed)}</b>`;
+    `t = <b>${state.t.toFixed(2)}</b> &nbsp; B(t) = <b>(${fmt(point.x)}, ${fmt(point.y)})</b> &nbsp; |B′(t)| = <b>${fmt(speed)}</b>`;
 }
 
 // ---------- bernstein basis plot ----------
@@ -181,13 +214,12 @@ function renderBasis() {
   }
   if (active !== -1) basis.graph(t => bernstein(n, active, t), COLORS.yellowBright, 3, 0, 1);
 
-  basis.line(state.t, -0.05, state.t, 1.05, COLORS.creamDim, 1, [3, 3]);
+  basis.line(state.t, -0.05, state.t, 1.08, COLORS.creamDim, 1, [3, 3]);
   for (let i = 0; i <= n; i++) {
     const v = bernstein(n, i, state.t);
     basis.dot(state.t, v, i === active ? 4.5 : 3, i === active ? COLORS.yellowBright : pointColor(i));
   }
 
-  // label each curve near its peak
   for (let i = 0; i <= n; i++) {
     const peak = n === 0 ? 0 : i / n;
     const s = basis.toScreen(peak, bernstein(n, i, peak));
@@ -201,6 +233,30 @@ function renderBasis() {
 }
 
 // ---------- equations ----------
+
+// hidden sliders for each coordinate, so the numbers in P can be dragged like any other
+const coordBox = document.createElement('div');
+coordBox.hidden = true;
+document.body.appendChild(coordBox);
+
+function rebuildCoordSliders() {
+  coordBox.innerHTML = '';
+  state.points.forEach((p, i) => {
+    for (const c of ['x', 'y']) {
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.id = `p${i}${c}`;
+      input.min = -15; input.max = 15; input.step = 0.05;
+      input.value = p[c];
+      input.addEventListener('input', () => {
+        state.points[i][c] = parseFloat(input.value);
+        state.rowIndex = i;
+        render();
+      });
+      coordBox.appendChild(input);
+    }
+  });
+}
 
 function bernsteinTex(n, i) {
   const c = binomial(n, i);
@@ -218,12 +274,10 @@ function renderBernstein(point) {
   tex('bernsteinGeneral', `B(t) = \\sum_{i=0}^{${n}} \\binom{${n}}{i}(1-t)^{${n}-i}\\,t^{i}\\,P_i`, true);
 
   const terms = [];
-  for (let i = 0; i <= n; i++) {
-    terms.push(hl(`${bernsteinTex(n, i)}\\,P_{${i}}`, i === active));
-  }
+  for (let i = 0; i <= n; i++) terms.push(hl(`${bernsteinTex(n, i)}\\,P_{${i}}`, i === active));
   tex('bernsteinExpanded', `B(t) = ${terms.join(' + ')}`, true);
 
-  let rows = '<tr><th>point</th><th>weight b<sub>i</sub>(t)</th><th style="text-align:right">value</th><th style="text-align:right">P<sub>i</sub></th><th style="text-align:right">b<sub>i</sub>P<sub>i</sub></th></tr>';
+  let rows = `<tr><th>point</th><th>b<sub>i</sub>(t)</th><th style="text-align:right">at t = ${state.t.toFixed(2)}</th><th style="text-align:right">b<sub>i</sub>P<sub>i</sub></th></tr>`;
   let sum = 0;
   for (let i = 0; i <= n; i++) {
     const w = bernstein(n, i, state.t);
@@ -233,11 +287,10 @@ function renderBernstein(point) {
       <td><span class="swatch" style="background:${pointColor(i)}"></span>P${i}</td>
       <td class="k" data-tex="${bernsteinTex(n, i)}"></td>
       <td class="n">${fmt(w, 3)}</td>
-      <td class="n">(${fmt(p.x)}, ${fmt(p.y)})</td>
       <td class="n">(${fmt(w * p.x)}, ${fmt(w * p.y)})</td>
     </tr>`;
   }
-  rows += `<tr class="total"><td>sum</td><td></td><td class="n">${fmt(sum, 3)}</td><td></td><td class="n">(${fmt(point.x)}, ${fmt(point.y)})</td></tr>`;
+  rows += `<tr class="total"><td>sum</td><td></td><td class="n">${fmt(sum, 3)}</td><td class="n">(${fmt(point.x)}, ${fmt(point.y)})</td></tr>`;
 
   const table = document.getElementById('bernsteinTable');
   table.innerHTML = rows;
@@ -252,7 +305,9 @@ function renderMatrix(point) {
 
   const T = Array.from({ length: n + 1 }, (_, j) => sup(j)).join(' & ');
   const Mrows = M.map(row => row.map((v, i) => hl(String(v), i === active)).join(' & ')).join(' \\\\ ');
-  const Prows = state.points.map((p, i) => `${hl(fmt(p.x), i === active)} & ${hl(fmt(p.y), i === active)}`).join(' \\\\ ');
+  const Prows = state.points.map((p, i) =>
+    `${hl(scrub(`p${i}x`, fmt(p.x)), i === active)} & ${hl(scrub(`p${i}y`, fmt(p.y)), i === active)}`
+  ).join(' \\\\ ');
 
   tex('matrixEq',
     `B(t) = \\begin{bmatrix} ${T} \\end{bmatrix}` +
@@ -261,7 +316,7 @@ function renderMatrix(point) {
 
   const Tnum = powerRow(n, state.t).map(v => num(v, 3)).join(' & ');
   tex('matrixResult',
-    `t = ${fmt(state.t)}:\\quad \\begin{bmatrix} ${Tnum} \\end{bmatrix} M P = (${fmt(point.x, 3)},\\ ${fmt(point.y, 3)})`, true);
+    `t = ${scrub('tSlider', fmt(state.t))}:\\quad \\begin{bmatrix} ${Tnum} \\end{bmatrix} M P = (${fmt(point.x, 3)},\\ ${fmt(point.y, 3)})`, true);
 }
 
 function renderDerivative(tangent) {
@@ -272,15 +327,19 @@ function renderDerivative(tangent) {
 
 function render() {
   if (!state.points.length) return;
-  const levels = deCasteljau(state.points, state.t);
-  const point = levels[levels.length - 1][0];
+  const point = curvePoint(state.t);
   const tangent = tangentAt(state.points, state.t);
-
-  renderSandbox(levels, point, tangent);
+  renderSandbox();
   renderBasis();
   renderBernstein(point);
   renderMatrix(point);
   renderDerivative(tangent);
+  // keep the hidden coordinate sliders in sync with dragged points
+  state.points.forEach((p, i) => {
+    const ix = document.getElementById(`p${i}x`), iy = document.getElementById(`p${i}y`);
+    if (ix && document.activeElement !== ix) ix.value = p.x;
+    if (iy && document.activeElement !== iy) iy.value = p.y;
+  });
 }
 
 // ---------- state changes ----------
@@ -302,9 +361,10 @@ function setT(t) {
 }
 
 function setPoints(points) {
-  state.points = points;
+  state.points = points.map(p => ({ ...p }));
   state.hoverIndex = -1;
   state.rowIndex = -1;
+  rebuildCoordSliders();
   syncControls();
   render();
 }
@@ -319,10 +379,37 @@ function hitTest(pos) {
   return -1;
 }
 
+function hitCurvePoint(pos) {
+  if (!state.points.length) return false;
+  const p = curvePoint(state.t);
+  const s = plot.toScreen(p.x, p.y);
+  return Math.hypot(s.x - pos.x, s.y - pos.y) <= HIT_RADIUS;
+}
+
+// the t whose point on the curve is closest to the mouse
+function closestT(pos) {
+  let best = 0, bestD = Infinity;
+  for (let k = 0; k <= 400; k++) {
+    const t = k / 400;
+    const p = curvePoint(t);
+    const s = plot.toScreen(p.x, p.y);
+    const d = Math.hypot(s.x - pos.x, s.y - pos.y);
+    if (d < bestD) { bestD = d; best = t; }
+  }
+  return best;
+}
+
 canvas.addEventListener('pointerdown', e => {
-  const i = hitTest(pointerPos(canvas, e));
-  if (i === -1) return;
-  state.dragIndex = i;
+  const pos = pointerPos(canvas, e);
+  const i = hitTest(pos);
+  if (i !== -1) {
+    state.dragIndex = i;
+  } else if (hitCurvePoint(pos)) {
+    state.dragT = true;
+    stopPlaying();
+  } else {
+    return;
+  }
   canvas.setPointerCapture(e.pointerId);
   canvas.style.cursor = 'grabbing';
   render();
@@ -335,27 +422,35 @@ canvas.addEventListener('pointermove', e => {
     render();
     return;
   }
+  if (state.dragT) {
+    setT(closestT(pos));
+    return;
+  }
   const hover = hitTest(pos);
-  if (hover !== state.hoverIndex) {
+  const hoverT = hover === -1 && hitCurvePoint(pos);
+  if (hover !== state.hoverIndex || hoverT !== state.hoverT) {
     state.hoverIndex = hover;
-    canvas.style.cursor = hover === -1 ? 'crosshair' : 'grab';
+    state.hoverT = hoverT;
+    canvas.style.cursor = hover !== -1 || hoverT ? 'grab' : '';
     render();
   }
 });
 
 function endDrag(e) {
-  if (state.dragIndex === -1) return;
+  if (state.dragIndex === -1 && !state.dragT) return;
   state.dragIndex = -1;
+  state.dragT = false;
   if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-  canvas.style.cursor = state.hoverIndex === -1 ? 'crosshair' : 'grab';
+  canvas.style.cursor = state.hoverIndex === -1 ? '' : 'grab';
   render();
 }
 
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
 canvas.addEventListener('pointerleave', () => {
-  if (state.dragIndex === -1 && state.hoverIndex !== -1) {
+  if (state.dragIndex === -1 && (state.hoverIndex !== -1 || state.hoverT)) {
     state.hoverIndex = -1;
+    state.hoverT = false;
     render();
   }
 });
@@ -384,19 +479,29 @@ table.addEventListener('mouseleave', () => {
   state.rowIndex = -1;
   render();
 });
+document.getElementById('matrixEq').addEventListener('mouseleave', () => {
+  if (state.rowIndex !== -1 && !document.body.classList.contains('scrubbing')) {
+    state.rowIndex = -1;
+    render();
+  }
+});
 
 // ---------- buttons ----------
 
 document.getElementById('addPoint').addEventListener('click', () => {
-  if (state.points.length < MAX_POINTS) setPoints(elevateDegree(state.points));
+  if (state.points.length < MAX_POINTS) {
+    setPoints(elevateDegree(state.points));
+    toast('same curve, one more point');
+  }
 });
 
 document.getElementById('removePoint').addEventListener('click', () => {
   if (state.points.length > MIN_POINTS) setPoints(state.points.slice(0, -1));
 });
 
-document.getElementById('resetButton').addEventListener('click', () => setPoints(defaultPoints(state.points.length)));
-document.getElementById('randomButton').addEventListener('click', () => setPoints(randomPoints(state.points.length)));
+document.querySelectorAll('[data-shape]').forEach(b => b.addEventListener('click', () => {
+  setPoints(shapes[b.dataset.shape]());
+}));
 
 document.getElementById('tSlider').addEventListener('input', e => {
   stopPlaying();
@@ -437,14 +542,12 @@ function stopPlaying() {
 document.getElementById('playButton').addEventListener('click', () => (state.playing ? stopPlaying() : startPlaying()));
 
 document.addEventListener('keydown', e => {
-  if (e.code !== 'Space' || e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+  if (e.code !== 'Space' || e.target.matches('input[type="text"]')) return;
   e.preventDefault();
   state.playing ? stopPlaying() : startPlaying();
 });
 
 // ---------- start ----------
 
-canvas.style.cursor = 'crosshair';
-state.points = defaultPoints(4);
-syncControls();
+setPoints(shapes.arch());
 setT(0.5);

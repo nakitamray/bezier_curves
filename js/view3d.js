@@ -5,14 +5,15 @@
 class View3D {
   constructor(canvas, opts = {}) {
     this.canvas = canvas;
-    this.yaw = opts.yaw ?? -0.75;
-    this.pitch = opts.pitch ?? 0.5;
+    this.home = { yaw: opts.yaw ?? -0.75, pitch: opts.pitch ?? 0.5 };
     this.zoom = opts.zoom ?? 1;
     this.size = opts.size ?? 7; // roughly how many world units fit across
     this.dist = opts.dist ?? 22;
     this.center = opts.center || { x: 0, y: 0, z: 0 }; // the point the camera looks at
-    this.light = normalize({ x: -0.4, y: -0.6, z: 1 });
+    this.pan = { x: 0, y: 0 }; // screen-space offset in world units
+    this.light = normalize({ x: -0.35, y: 0.55, z: 0.75 }); // in camera space, so shading follows you
     this.items = [];
+    this.setAngles(this.home.yaw, this.home.pitch);
 
     // pages can hook into dragging: pick(pos) returns true to take over the drag
     this.pick = opts.pick || null;
@@ -24,18 +25,66 @@ class View3D {
     this.bindMouse();
   }
 
+  // rotation matrix from a turn around z and a tilt, used for the starting view
+  setAngles(yaw, pitch) {
+    const cy = Math.cos(yaw), sy = Math.sin(yaw);
+    const cp = Math.cos(pitch), sp = Math.sin(pitch);
+    // rows: screen right, screen up, toward the viewer
+    this.R = [
+      [cy, -sy, 0],
+      [sy * sp, cy * sp, cp],
+      [-sy * cp, -cy * cp, sp]
+    ];
+  }
+
+  // turn the whole scene around a screen axis. this is what lets it spin any direction
+  rotate(axis, angle) {
+    const c = Math.cos(angle), s = Math.sin(angle);
+    const R = this.R;
+    const rot = axis === 'x'
+      ? [[1, 0, 0], [0, c, -s], [0, s, c]]
+      : [[c, 0, s], [0, 1, 0], [-s, 0, c]];
+    this.R = rot.map(row => [0, 1, 2].map(j => row[0] * R[0][j] + row[1] * R[1][j] + row[2] * R[2][j]));
+    // keep it a clean rotation (tiny errors pile up after lots of dragging)
+    const [a, b] = this.R;
+    const na = normalize({ x: a[0], y: a[1], z: a[2] });
+    const d = na.x * b[0] + na.y * b[1] + na.z * b[2];
+    const nb = normalize({ x: b[0] - d * na.x, y: b[1] - d * na.y, z: b[2] - d * na.z });
+    const nc = { x: na.y * nb.z - na.z * nb.y, y: na.z * nb.x - na.x * nb.z, z: na.x * nb.y - na.y * nb.x };
+    this.R = [[na.x, na.y, na.z], [nb.x, nb.y, nb.z], [nc.x, nc.y, nc.z]];
+  }
+
+  scale() {
+    return (Math.min(this.view.width, this.view.height) / this.size) * this.zoom;
+  }
+
+  // how many pixels the screen moves when z goes up by one (for dragging points vertically)
+  pixelsPerZ() {
+    return this.R[1][2] * this.scale();
+  }
+
+  resetView() {
+    this.setAngles(this.home.yaw, this.home.pitch);
+    this.pan = { x: 0, y: 0 };
+    this.zoom = 1;
+    this.draw();
+  }
+
   bindMouse() {
     const c = this.canvas;
     let last = null;
-    let custom = false;
+    let mode = null;
     c.style.cursor = 'grab';
+    c.addEventListener('contextmenu', e => e.preventDefault());
 
     c.addEventListener('pointerdown', e => {
       const pos = pointerPos(c, e);
-      custom = !!(this.pick && this.pick(pos));
+      if (e.button === 2 || e.shiftKey) mode = 'pan';
+      else if (this.pick && this.pick(pos)) mode = 'custom';
+      else mode = 'rotate';
       last = pos;
       c.setPointerCapture(e.pointerId);
-      c.style.cursor = custom ? 'ns-resize' : 'grabbing';
+      c.style.cursor = mode === 'custom' ? 'ns-resize' : mode === 'pan' ? 'move' : 'grabbing';
     });
 
     c.addEventListener('pointermove', e => {
@@ -44,11 +93,16 @@ class View3D {
       const dx = pos.x - last.x;
       const dy = pos.y - last.y;
       last = pos;
-      if (custom) {
+      if (mode === 'custom') {
         this.drag && this.drag(dx, dy, pos);
+      } else if (mode === 'pan') {
+        const k = this.scale();
+        this.pan.x += dx / k;
+        this.pan.y -= dy / k;
+        this.draw();
       } else {
-        this.yaw -= dx * 0.008;
-        this.pitch = clamp(this.pitch + dy * 0.008, -0.2, 1.45);
+        this.rotate('y', dx * 0.009);
+        this.rotate('x', dy * 0.009);
         this.draw();
       }
     });
@@ -56,35 +110,35 @@ class View3D {
     const up = e => {
       if (!last) return;
       last = null;
-      if (custom && this.release) this.release();
-      custom = false;
+      if (mode === 'custom' && this.release) this.release();
+      mode = null;
       if (c.hasPointerCapture(e.pointerId)) c.releasePointerCapture(e.pointerId);
       c.style.cursor = 'grab';
     };
     c.addEventListener('pointerup', up);
     c.addEventListener('pointercancel', up);
+    c.addEventListener('dblclick', () => this.resetView());
 
     c.addEventListener('wheel', e => {
       e.preventDefault();
-      this.zoom = clamp(this.zoom * Math.exp(-e.deltaY * 0.001), 0.4, 3);
+      this.zoom = clamp(this.zoom * Math.exp(-e.deltaY * 0.001), 0.3, 4);
       this.draw();
     }, { passive: false });
   }
 
   // world -> screen. returns {x, y, depth}
   project(q) {
-    const p = { x: q.x - this.center.x, y: q.y - this.center.y, z: q.z - this.center.z };
-    const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
-    const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
-    const x1 = p.x * cy - p.y * sy;
-    const y1 = p.x * sy + p.y * cy;
-    const up = y1 * sp + p.z * cp;
-    const depth = y1 * cp - p.z * sp + this.dist;
-    const k = this.dist / depth;
-    const scale = (Math.min(this.view.width, this.view.height) / this.size) * this.zoom;
+    const px = q.x - this.center.x, py = q.y - this.center.y, pz = q.z - this.center.z;
+    const R = this.R;
+    const X = R[0][0] * px + R[0][1] * py + R[0][2] * pz + this.pan.x;
+    const Y = R[1][0] * px + R[1][1] * py + R[1][2] * pz + this.pan.y;
+    const Z = R[2][0] * px + R[2][1] * py + R[2][2] * pz;
+    const depth = this.dist - Z;
+    const k = this.dist / Math.max(depth, 0.5);
+    const scale = this.scale();
     return {
-      x: this.view.width / 2 + x1 * scale * k,
-      y: this.view.height / 2 - up * scale * k,
+      x: this.view.width / 2 + X * scale * k,
+      y: this.view.height / 2 - Y * scale * k,
       depth
     };
   }
@@ -207,7 +261,9 @@ class View3D {
       let [r, g, b] = it.color;
       if (it.shade) {
         const n = normal(it.pts);
-        const k = 0.45 + 0.55 * Math.abs(dot3(n, this.light));
+        const R = this.R;
+        const nv = { x: R[0][0] * n.x + R[0][1] * n.y + R[0][2] * n.z, y: R[1][0] * n.x + R[1][1] * n.y + R[1][2] * n.z, z: R[2][0] * n.x + R[2][1] * n.y + R[2][2] * n.z };
+        const k = 0.42 + 0.58 * Math.abs(dot3(nv, this.light));
         r *= k; g *= k; b *= k;
       }
       const fill = `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${it.alpha})`;

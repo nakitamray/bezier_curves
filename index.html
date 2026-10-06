@@ -6,98 +6,99 @@
   <title>Bézier Curves · Visual Math</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="lib/katex/katex.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="inner">
-      <a class="wordmark" href="index.html">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 C 6 3, 18 3, 21 20" fill="none" stroke="#e9c46a" stroke-width="2" stroke-linecap="round"/><rect x="1" y="18" width="4" height="4" fill="#efe6cf"/><rect x="19" y="18" width="4" height="4" fill="#efe6cf"/></svg>
-        Visual Math
-      </a>
-      <nav class="site-nav">
-        <a href="index.html" class="current">Bézier Curves</a>
-        <a href="surfaces.html">3D Surfaces</a>
-        <a href="diffeq.html">Differential Equations</a>
-        <a href="analysis.html">Real Analysis</a>
-      </nav>
-    </div>
+  <header class="topbar">
+    <a class="wordmark" href="index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 C 6 3, 18 3, 21 20" fill="none" stroke="#e9c46a" stroke-width="2" stroke-linecap="round"/><rect x="1" y="18" width="4" height="4" fill="#efe6cf"/><rect x="19" y="18" width="4" height="4" fill="#efe6cf"/></svg>
+      Visual Math
+    </a>
+    <nav class="sections">
+      <a href="index.html" class="current">Bézier</a>
+      <a href="surfaces.html">3D Surfaces</a>
+      <a href="diffeq.html">Diff Eq</a>
+      <a href="analysis.html">Analysis</a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="ghost-btn" id="resetCards">tidy cards</button>
+    <button class="ghost-btn" id="hideCards">hide cards <kbd>H</kbd></button>
   </header>
 
-  <main class="page">
-    <div class="intro">
-      <h1>Bézier Curves</h1>
-      <p>A Bézier curve is a weighted average of its control points. Drag a point and watch which parts of the equations it touches.</p>
-    </div>
+  <div class="stage">
+    <canvas id="bezierCanvas"></canvas>
+    <div class="readout" id="readout"></div>
+  </div>
 
-    <div class="workspace">
-      <div class="sandbox">
-        <div class="sandbox-canvas">
-          <canvas id="bezierCanvas"></canvas>
-          <div class="corner" id="readout"></div>
-          <div class="note">drag points · double-click to add or remove</div>
-        </div>
-
-        <div class="sandbox-row">
+  <div class="cards">
+    <section class="card narrow" data-card="curve" style="top: 72px; left: 18px">
+      <div class="card-head"><h2>The curve</h2><button class="fold" aria-label="fold">▾</button></div>
+      <div class="card-body">
+        <p>Drag the points. Grab the yellow dot to slide it along the curve.</p>
+        <div class="row">
           <button id="playButton" class="play" aria-label="play"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4v16l13-8z"/></svg></button>
-          <span class="label">t</span>
-          <input type="range" id="tSlider" class="grow" min="0" max="1" step="0.001" value="0.5">
+          <input type="range" id="tSlider" min="0" max="1" step="0.001" value="0.5" style="flex:1">
           <span class="value" id="tValue">0.50</span>
         </div>
-
-        <div class="sandbox-row">
+        <div class="row">
           <span class="label">points</span>
           <div class="counter">
             <button id="removePoint" class="btn square" aria-label="remove point">−</button>
             <span class="value" id="pointCount">4</span>
             <button id="addPoint" class="btn square" aria-label="add point" title="raises the degree without changing the curve">+</button>
           </div>
-          <button id="resetButton" class="btn">Reset</button>
-          <button id="randomButton" class="btn">Random</button>
         </div>
-
-        <div class="sandbox-row">
-          <span class="label">display</span>
-          <div class="options">
-            <label class="check"><input type="checkbox" id="togglePolygon" checked> control polygon</label>
-            <label class="check"><input type="checkbox" id="toggleConstruction" checked> de Casteljau steps</label>
-            <label class="check"><input type="checkbox" id="toggleTangent" checked> tangent B′(t)</label>
-            <label class="check"><input type="checkbox" id="toggleConvex"> convex hull</label>
-            <label class="check"><input type="checkbox" id="toggleGrid" checked> grid</label>
+        <div class="row">
+          <span class="label">shapes</span>
+          <div class="chips" id="shapes">
+            <button data-shape="arch">arch</button>
+            <button data-shape="s">S</button>
+            <button data-shape="loop">loop</button>
+            <button data-shape="wave">wave</button>
+            <button data-shape="random">random</button>
           </div>
         </div>
+        <hr>
+        <div class="options">
+          <label class="check"><input type="checkbox" id="togglePolygon" checked> control polygon</label>
+          <label class="check"><input type="checkbox" id="toggleConstruction" checked> de Casteljau</label>
+          <label class="check"><input type="checkbox" id="toggleTangent" checked> tangent</label>
+          <label class="check"><input type="checkbox" id="toggleConvex"> convex hull</label>
+          <label class="check"><input type="checkbox" id="toggleTrail"> t marks</label>
+          <label class="check"><input type="checkbox" id="toggleGrid" checked> grid</label>
+        </div>
       </div>
+    </section>
 
-      <div class="notes">
-        <section>
-          <h2>Bernstein form</h2>
-          <p>Each control point gets a weight from a Bernstein polynomial. The weights always add up to 1, so B(t) is an average of the points.</p>
-          <div class="eq small" id="bernsteinGeneral"></div>
-          <div class="eq" id="bernsteinExpanded"></div>
-          <div class="table-wrap"><table class="num-table" id="bernsteinTable"></table></div>
-          <canvas id="basisCanvas" class="mini-canvas" style="margin-top: 14px"></canvas>
-        </section>
-
-        <section>
-          <h2>Matrix form</h2>
-          <p>Expanding the Bernstein polynomials into powers of t gives the same curve as a product of three matrices.</p>
-          <div class="eq big" id="matrixEq"></div>
-          <div class="eq" id="matrixResult"></div>
-        </section>
-
-        <section>
-          <h2>Tangent</h2>
-          <p>The derivative is another Bézier curve, one degree lower, built from the differences between neighbouring points.</p>
-          <div class="eq small" id="derivativeEq"></div>
-        </section>
+    <section class="card wide" data-card="bernstein" style="top: 72px; right: 18px">
+      <div class="card-head"><h2>Bernstein form</h2><button class="fold" aria-label="fold">▾</button></div>
+      <div class="card-body">
+        <p>B(t) is a weighted average of the points. Hover a row or a point to see where it shows up.</p>
+        <div class="eq small" id="bernsteinGeneral"></div>
+        <div class="eq" id="bernsteinExpanded"></div>
+        <div class="table-wrap"><table class="num-table" id="bernsteinTable"></table></div>
+        <canvas id="basisCanvas" class="mini-canvas"></canvas>
       </div>
-    </div>
-  </main>
+    </section>
+
+    <section class="card fit" data-card="matrix" style="bottom: 18px; left: 18px">
+      <div class="card-head"><h2>Matrix form</h2><button class="fold" aria-label="fold">▾</button></div>
+      <div class="card-body">
+        <div class="eq" id="matrixEq"></div>
+        <div class="eq small" id="matrixResult"></div>
+        <hr>
+        <div class="eq small" id="derivativeEq"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="hint">drag empty space to pan · scroll to zoom · drag underlined numbers</div>
 
   <script src="lib/katex/katex.min.js"></script>
   <script src="js/common.js"></script>
+  <script src="js/ui.js"></script>
   <script src="js/math.js"></script>
   <script src="js/bezier.js"></script>
 </body>

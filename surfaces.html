@@ -6,211 +6,186 @@
   <title>3D Surfaces · Visual Math</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="lib/katex/katex.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="inner">
-      <a class="wordmark" href="index.html">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 C 6 3, 18 3, 21 20" fill="none" stroke="#e9c46a" stroke-width="2" stroke-linecap="round"/><rect x="1" y="18" width="4" height="4" fill="#efe6cf"/><rect x="19" y="18" width="4" height="4" fill="#efe6cf"/></svg>
-        Visual Math
-      </a>
-      <nav class="site-nav">
-        <a href="index.html">Bézier Curves</a>
-        <a href="surfaces.html" class="current">3D Surfaces</a>
-        <a href="diffeq.html">Differential Equations</a>
-        <a href="analysis.html">Real Analysis</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="page">
-    <div class="intro">
-      <h1>3D Surfaces</h1>
-      <p>Multivariable calculus you can rotate. Change a surface and see what happens to its derivatives, its tangent plane, and the integrals over it.</p>
-    </div>
-
+  <header class="topbar">
+    <a class="wordmark" href="index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 C 6 3, 18 3, 21 20" fill="none" stroke="#e9c46a" stroke-width="2" stroke-linecap="round"/><rect x="1" y="18" width="4" height="4" fill="#efe6cf"/><rect x="19" y="18" width="4" height="4" fill="#efe6cf"/></svg>
+      Visual Math
+    </a>
+    <nav class="sections">
+      <a href="index.html">Bézier</a>
+      <a href="surfaces.html" class="current">3D Surfaces</a>
+      <a href="diffeq.html">Diff Eq</a>
+      <a href="analysis.html">Analysis</a>
+    </nav>
     <div class="modes" id="modes">
-      <button data-mode="graph">Graphs z = f(x, y)</button>
-      <button data-mode="patch">Bézier surfaces</button>
+      <button data-mode="graph">z = f(x, y)</button>
+      <button data-mode="patch">Bézier surface</button>
       <button data-mode="triple">Triple integrals</button>
     </div>
+    <button class="ghost-btn" id="resetCards">tidy cards</button>
+    <button class="ghost-btn" id="hideCards">hide cards <kbd>H</kbd></button>
+  </header>
 
-    <!-- graphs of functions of two variables -->
-    <div class="workspace" data-panel="graph">
-      <div class="sandbox">
-        <div class="sandbox-canvas">
-          <canvas id="graphCanvas"></canvas>
-          <div class="note">drag to rotate · scroll to zoom</div>
-        </div>
-        <div class="sandbox-row">
-          <span class="label">surface</span>
-          <select id="graphPreset"></select>
-          <div class="input-row grow" style="margin:0">
+  <!-- ============ graphs of f(x, y) ============ -->
+  <div data-panel="graph">
+    <div class="stage">
+      <canvas id="graphCanvas"></canvas>
+      <div class="readout" id="graphReadout"></div>
+    </div>
+    <div class="cards">
+      <section class="card" data-card="graph-controls" style="top: 72px; left: 18px">
+        <div class="card-head"><h2>The surface</h2><button class="fold" aria-label="fold">▾</button></div>
+        <div class="card-body">
+          <div class="chips" id="graphChips"></div>
+          <div class="input-row">
             <span class="prefix">f(x, y) =</span>
             <input type="text" id="graphExpr" class="text-input" spellcheck="false">
           </div>
-        </div>
-        <div class="sandbox-row" style="display:block">
+          <div class="error" id="graphError"></div>
           <div class="field"><label for="paramA">a</label><input type="range" id="paramA" min="-3" max="3" step="0.05"><output data-for="paramA"></output></div>
           <div class="field"><label for="paramB">b</label><input type="range" id="paramB" min="-3" max="3" step="0.05"><output data-for="paramB"></output></div>
-          <div class="field"><label for="pointX">point x₀</label><input type="range" id="pointX" min="-3" max="3" step="0.02" value="1"><output data-for="pointX"></output></div>
-          <div class="field"><label for="pointY">point y₀</label><input type="range" id="pointY" min="-3" max="3" step="0.02" value="0.5"><output data-for="pointY"></output></div>
+          <hr>
+          <p>Pick a point on the surface:</p>
+          <div class="field"><label for="pointX">x₀</label><input type="range" id="pointX" min="-3" max="3" step="0.02" value="1"><output data-for="pointX"></output></div>
+          <div class="field"><label for="pointY">y₀</label><input type="range" id="pointY" min="-3" max="3" step="0.02" value="0.5"><output data-for="pointY"></output></div>
           <div class="field"><label for="dirAngle">direction θ</label><input type="range" id="dirAngle" min="0" max="6.283" step="0.01" value="0.8"><output data-for="dirAngle"></output></div>
-          <div class="error" id="graphError"></div>
-        </div>
-        <div class="sandbox-row">
-          <span class="label">display</span>
+          <div class="row">
+            <button class="btn" id="rollBall">drop a ball</button>
+            <button class="btn" id="climbButton">climb the gradient</button>
+          </div>
+          <hr>
           <div class="options">
             <label class="check"><input type="checkbox" id="showPlane" checked> tangent plane</label>
-            <label class="check"><input type="checkbox" id="showTraces" checked> traces x = x₀, y = y₀</label>
+            <label class="check"><input type="checkbox" id="showTraces" checked> traces</label>
             <label class="check"><input type="checkbox" id="showContours" checked> level curves</label>
             <label class="check"><input type="checkbox" id="showGradient" checked> gradient</label>
             <label class="check"><input type="checkbox" id="showMesh"> wireframe</label>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="notes">
-        <section>
-          <h2>The function</h2>
-          <p>Move a or b and the matching number lights up in the equation.</p>
+      <section class="card wide" data-card="graph-math" style="top: 72px; right: 18px">
+        <div class="card-head"><h2>What the calculus says</h2><button class="fold" aria-label="fold">▾</button></div>
+        <div class="card-body">
           <div class="eq big" id="graphFormula"></div>
-        </section>
-        <section>
-          <h2>Partial derivatives</h2>
-          <p>Each partial is the slope of a trace: slice the surface with x = x₀ or y = y₀ and you get an ordinary curve.</p>
+          <h3>Partial derivatives</h3>
+          <p>Slopes of the two white traces at the point.</p>
           <div class="eq" id="graphPartials"></div>
           <div class="eq" id="graphGradient"></div>
-        </section>
-        <section>
-          <h2>Tangent plane</h2>
+          <h3>Tangent plane</h3>
           <div class="eq" id="graphPlane"></div>
-          <p class="sub">Near the point, the surface and this plane are almost the same. That is what being differentiable means.</p>
-        </section>
-        <section>
-          <h2>Directional derivative</h2>
+          <h3>Directional derivative</h3>
           <div class="eq" id="graphDirectional"></div>
-          <p class="sub">It is largest when u points along ∇f, and zero when u runs along a level curve.</p>
-        </section>
-        <section>
-          <h2>Second derivative test</h2>
-          <div class="eq" id="graphHessian"></div>
+          <h3>Second derivative test</h3>
+          <div class="eq small" id="graphHessian"></div>
           <div class="callout" id="graphClassify"></div>
-        </section>
-      </div>
-    </div>
-
-    <!-- bezier surface patches -->
-    <div class="workspace" data-panel="patch" hidden>
-      <div class="sandbox">
-        <div class="sandbox-canvas">
-          <canvas id="patchCanvas"></canvas>
-          <div class="note">drag a control point up or down · drag empty space to rotate</div>
         </div>
-        <div class="sandbox-row" style="display:block">
+      </section>
+    </div>
+  </div>
+
+  <!-- ============ bezier surface ============ -->
+  <div data-panel="patch" hidden>
+    <div class="stage">
+      <canvas id="patchCanvas"></canvas>
+      <div class="readout" id="patchReadout"></div>
+    </div>
+    <div class="cards">
+      <section class="card narrow" data-card="patch-controls" style="top: 72px; left: 18px">
+        <div class="card-head"><h2>Sculpt it</h2><button class="fold" aria-label="fold">▾</button></div>
+        <div class="card-body">
+          <p>Grab a control point and drag up or down. Drag anywhere else to spin it.</p>
+          <div class="chips">
+            <button data-patch="hill">hill</button>
+            <button data-patch="saddle">saddle</button>
+            <button data-patch="wave">wave</button>
+            <button data-patch="flat">flat</button>
+            <button data-patch="random">random</button>
+          </div>
+          <hr>
           <div class="field"><label for="patchU">u</label><input type="range" id="patchU" min="0" max="1" step="0.005" value="0.35"><output data-for="patchU"></output></div>
           <div class="field"><label for="patchV">v</label><input type="range" id="patchV" min="0" max="1" step="0.005" value="0.6"><output data-for="patchV"></output></div>
-        </div>
-        <div class="sandbox-row">
-          <span class="label">shape</span>
-          <button class="btn" data-patch="hill">Hill</button>
-          <button class="btn" data-patch="saddle">Saddle</button>
-          <button class="btn" data-patch="wave">Wave</button>
-          <button class="btn" data-patch="flat">Flat</button>
-          <button class="btn" data-patch="random">Random</button>
-        </div>
-        <div class="sandbox-row">
-          <span class="label">display</span>
+          <hr>
           <div class="options">
             <label class="check"><input type="checkbox" id="patchNet" checked> control net</label>
-            <label class="check"><input type="checkbox" id="patchIso" checked> curves u = u₀, v = v₀</label>
+            <label class="check"><input type="checkbox" id="patchIso" checked> curves u₀, v₀</label>
             <label class="check"><input type="checkbox" id="patchMesh"> wireframe</label>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="notes">
-        <section>
-          <h2>A surface made of curves</h2>
-          <p>A bicubic Bézier patch uses a 4 × 4 grid of control points. Fix u and you get an ordinary Bézier curve in v, and the other way round.</p>
-          <div class="eq" id="patchFormula"></div>
-        </section>
-        <section>
-          <h2>Matrix form</h2>
-          <p>Only the heights change here, so the z-coordinates fit in one 4 × 4 matrix Z. The selected control point is highlighted.</p>
-          <div class="eq big" id="patchMatrix"></div>
-          <div class="eq" id="patchValue"></div>
-        </section>
-        <section>
-          <h2>Curve at u = u₀</h2>
-          <p>Mix each column of Z with the weights b<sub>i</sub>(u₀). The result is the control polygon of the yellow curve.</p>
-          <div class="eq" id="patchCurve"></div>
-        </section>
-      </div>
+      <section class="card fit" data-card="patch-math" style="top: 72px; right: 18px">
+        <div class="card-head"><h2>A surface made of curves</h2><button class="fold" aria-label="fold">▾</button></div>
+        <div class="card-body">
+          <div class="eq small" id="patchFormula"></div>
+          <h3>Matrix form</h3>
+          <div class="eq" id="patchMatrix"></div>
+          <div class="eq small" id="patchValue"></div>
+          <h3>The yellow curve, u = u₀</h3>
+          <p>Mix each column of Z with the weights b<sub>i</sub>(u₀). Those four numbers are the curve's control points.</p>
+          <div class="eq small" id="patchCurve"></div>
+        </div>
+      </section>
     </div>
+  </div>
 
-    <!-- triple integrals -->
-    <div class="workspace" data-panel="triple" hidden>
-      <div class="sandbox">
-        <div class="sandbox-canvas">
-          <canvas id="tripleCanvas"></canvas>
-          <div class="corner" id="tripleReadout"></div>
-          <div class="note">drag to rotate · scroll to zoom</div>
-        </div>
-        <div class="sandbox-row">
-          <span class="label">region</span>
-          <select id="tripleRegion"></select>
-          <span class="label" style="min-width:auto">integrand</span>
-          <select id="tripleFunc"></select>
-        </div>
-        <div class="sandbox-row">
-          <span class="label">coordinates</span>
+  <!-- ============ triple integrals ============ -->
+  <div data-panel="triple" hidden>
+    <div class="stage">
+      <canvas id="tripleCanvas"></canvas>
+      <div class="readout" id="tripleReadout"></div>
+    </div>
+    <div class="cards">
+      <section class="card narrow" data-card="triple-controls" style="top: 72px; left: 18px">
+        <div class="card-head"><h2>The solid</h2><button class="fold" aria-label="fold">▾</button></div>
+        <div class="card-body">
+          <div class="input-row"><span class="label">region</span><select id="tripleRegion" style="flex:1"></select></div>
+          <div class="input-row"><span class="label">integrand</span><select id="tripleFunc" style="flex:1"></select></div>
+          <hr>
+          <p>Slice it up in</p>
           <div class="options" id="tripleCoords">
             <label class="check"><input type="radio" name="coords" value="cart" checked> rectangular</label>
             <label class="check"><input type="radio" name="coords" value="cyl"> cylindrical</label>
             <label class="check"><input type="radio" name="coords" value="sph"> spherical</label>
           </div>
-        </div>
-        <div class="sandbox-row" style="display:block">
+          <hr>
           <div class="field"><label for="tripleN">pieces n</label><input type="range" id="tripleN" min="1" max="12" step="1" value="5"><output data-for="tripleN"></output></div>
           <div class="field"><label for="tripleSize">size R</label><input type="range" id="tripleSize" min="0.8" max="2.5" step="0.05" value="2"><output data-for="tripleSize"></output></div>
-        </div>
-        <div class="sandbox-row">
-          <span class="label">display</span>
+          <div class="field"><label for="tripleExplode">pull apart</label><input type="range" id="tripleExplode" min="0" max="1" step="0.01" value="0"><output data-for="tripleExplode"></output></div>
+          <hr>
           <div class="options">
-            <label class="check"><input type="checkbox" id="tripleCut" checked> cut away a wedge</label>
-            <label class="check"><input type="checkbox" id="tripleOutline" checked> outline of the region</label>
+            <label class="check"><input type="checkbox" id="tripleCut" checked> cut a wedge</label>
+            <label class="check"><input type="checkbox" id="tripleOutline" checked> outline</label>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="notes">
-        <section>
-          <h2>Setting up the integral</h2>
-          <p>The same solid, written in different coordinates. The highlighted factor is the Jacobian, which says how much volume one small cell takes up.</p>
+      <section class="card wide" data-card="triple-math" style="top: 72px; right: 18px">
+        <div class="card-head"><h2>Setting up the integral</h2><button class="fold" aria-label="fold">▾</button></div>
+        <div class="card-body">
+          <p>The highlighted factor is the Jacobian: how much volume one small cell really takes up.</p>
           <div class="eq" id="tripleSetup"></div>
           <div class="eq small" id="tripleChange"></div>
-        </section>
-        <section>
-          <h2>Adding up the cells</h2>
-          <p>Cut each variable's range into n pieces and add f · (cell volume) over the n³ cells. The cells in the picture are those pieces.</p>
-          <div class="eq" id="tripleSum"></div>
+          <h3>Adding up the cells</h3>
+          <div class="eq small" id="tripleSum"></div>
           <div class="stats" id="tripleStats"></div>
-        </section>
-        <section>
-          <h2>All three at the same n</h2>
+          <h3>All three at the same n</h3>
           <div class="table-wrap"><table class="num-table" id="tripleCompare"></table></div>
-          <p class="sub" style="margin-top:10px">Coordinates that match the shape of the region need far fewer cells.</p>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
-  </main>
+  </div>
+
+  <div class="hint">drag to spin any direction · shift or right-drag to pan · scroll to zoom · double-click to reset</div>
 
   <script src="lib/katex/katex.min.js"></script>
   <script src="js/common.js"></script>
+  <script src="js/ui.js"></script>
   <script src="js/math.js"></script>
   <script src="js/view3d.js"></script>
   <script src="js/surfaces.js"></script>

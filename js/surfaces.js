@@ -36,6 +36,9 @@ const graphMode = (() => {
   let compiled = null;
   let lastChanged = null;
   let sliders = {};
+  let staticItems = [];
+  let ball = null;
+  let climb = false;
 
   function f(x, y) {
     return compiled.fn({ x, y, a: sliders.a.value, b: sliders.b.value });
@@ -208,8 +211,65 @@ const graphMode = (() => {
       view.label({ x: x0 + Math.cos(theta), y: y0 + Math.sin(theta), z: floor }, 'u', COLORS.white, { dx: 6 });
     }
 
-    view.draw();
+    if (climb) {
+      // steepest ascent: always walk in the direction of the gradient
+      const path = [];
+      let x = x0, y = y0;
+      for (let k = 0; k < 600; k++) {
+        const z = f(x, y);
+        if (!isFinite(z) || Math.abs(z) > ZCLIP) break;
+        path.push({ x, y, z: z + 0.02 });
+        const g = derivatives(x, y);
+        const len = Math.hypot(g.fx, g.fy);
+        if (len < 1e-3) break;
+        x += (0.03 * g.fx) / len;
+        y += (0.03 * g.fy) / len;
+        if (Math.abs(x) > DOMAIN || Math.abs(y) > DOMAIN) break;
+      }
+      view.polyline(path, COLORS.yellowBright, 3, { top: true });
+      if (path.length) view.point(path[path.length - 1], 4, COLORS.yellowBright, { top: true });
+    }
+
+    staticItems = view.items.slice();
+    drawBall();
     equations(d);
+  }
+
+  // a ball that rolls downhill: acceleration is minus the gradient, with some friction
+  function stepBall(dt) {
+    const g = derivatives(ball.x, ball.y);
+    ball.vx += (-6 * g.fx - 0.9 * ball.vx) * dt;
+    ball.vy += (-6 * g.fy - 0.9 * ball.vy) * dt;
+    ball.x += ball.vx * dt;
+    ball.y += ball.vy * dt;
+    const z = f(ball.x, ball.y);
+    if (Math.abs(ball.x) > DOMAIN || Math.abs(ball.y) > DOMAIN || !isFinite(z) || Math.abs(z) > ZCLIP) {
+      ball.done = true;
+      return;
+    }
+    ball.trail.push({ x: ball.x, y: ball.y, z: z + 0.03 });
+    if (ball.trail.length > 400) ball.trail.shift();
+    if (Math.hypot(ball.vx, ball.vy) < 0.01 && Math.hypot(g.fx, g.fy) < 0.02) ball.done = true;
+  }
+
+  function drawBall() {
+    view.items = staticItems.slice();
+    if (ball) {
+      view.polyline(ball.trail, 'rgba(250, 250, 250, 0.85)', 2.5, { top: true });
+      const z = f(ball.x, ball.y);
+      if (isFinite(z)) view.point({ x: ball.x, y: ball.y, z: z + 0.05 }, 8, COLORS.white, { stroke: '#1c1c1b', top: true });
+    }
+    view.draw();
+  }
+
+  function animateBall() {
+    if (!ball || ball.done) {
+      if (ball && ball.done) toast(Math.hypot(ball.vx, ball.vy) < 0.05 ? 'the ball settled in a valley' : 'the ball rolled off the edge');
+      return;
+    }
+    for (let k = 0; k < 3; k++) stepBall(0.008);
+    drawBall();
+    requestAnimationFrame(animateBall);
   }
 
   // keeps the part of a polygon with z below c (side 1) or above c (side -1)
@@ -228,18 +288,18 @@ const graphMode = (() => {
     return v < 0 ? `- ${fmt(-v, digits)}` : `+ ${fmt(v, digits)}`;
   }
 
-  function shift(name, v) {
-    // (x - 1.00) or (x + 1.00)
-    return `(${name} ${signed(-v)})`;
+  // (x - 1.00) or (x + 1.00), with the number draggable
+  function shift(name, v, id) {
+    return `(${name} ${v > 0 ? '-' : '+'} ${scrub(id, fmt(Math.abs(v)), v > 0)})`;
   }
 
   function equations(d) {
     const a = sliders.a.value, b = sliders.b.value;
     const x0 = sliders.x0.value, y0 = sliders.y0.value, theta = sliders.theta.value;
     const pt = lastChanged === 'x0' || lastChanged === 'y0';
-    const P = hl(`(${fmt(x0)}, ${fmt(y0)})`, pt);
+    const P = hl(`(${scrub('pointX', fmt(x0))}, ${scrub('pointY', fmt(y0))})`, pt);
 
-    tex('graphFormula', `f(x, y) = ${toTex(compiled.tree, { a, b }, lastChanged)}`, true);
+    tex('graphFormula', `f(x, y) = ${toTex(compiled.tree, { a, b }, lastChanged, { a: 'paramA', b: 'paramB' })}`, true);
 
     tex('graphPartials',
       `f_x${P} = ${fmt(d.fx)} \\qquad f_y${P} = ${fmt(d.fy)}`, true);
@@ -248,12 +308,13 @@ const graphMode = (() => {
 
     tex('graphPlane',
       `\\begin{aligned} z &= f(x_0, y_0) + f_x\\,(x - x_0) + f_y\\,(y - y_0) \\\\ ` +
-      `z &= ${fmt(d.f0)} ${signed(d.fx)}\\,${hl(shift('x', x0), pt)} ${signed(d.fy)}\\,${hl(shift('y', y0), pt)} \\end{aligned}`, true);
+      `z &= ${fmt(d.f0)} ${signed(d.fx)}\\,${hl(shift('x', x0, 'pointX'), pt)} ${signed(d.fy)}\\,${hl(shift('y', y0, 'pointY'), pt)} \\end{aligned}`, true);
 
     const ux = Math.cos(theta), uy = Math.sin(theta);
     const th = lastChanged === 'theta';
     tex('graphDirectional',
-      `D_{\\mathbf u} f = \\nabla f \\cdot \\mathbf u = \\langle ${fmt(d.fx)}, ${fmt(d.fy)} \\rangle \\cdot ${hl(`\\langle ${fmt(ux)}, ${fmt(uy)} \\rangle`, th)} = ${fmt(d.fx * ux + d.fy * uy)}`, true);
+      `D_{\\mathbf u} f = \\nabla f \\cdot \\mathbf u = \\langle ${fmt(d.fx)}, ${fmt(d.fy)} \\rangle \\cdot ${hl(`\\langle ${fmt(ux)}, ${fmt(uy)} \\rangle`, th)} = ${fmt(d.fx * ux + d.fy * uy)}` +
+      `\\\\[4pt] \\mathbf u = \\langle \\cos\\theta, \\sin\\theta \\rangle, \\quad \\theta = ${hl(scrub('dirAngle', fmt(theta)), th)}`, true);
 
     const D = d.fxx * d.fyy - d.fxy * d.fxy;
     tex('graphHessian',
@@ -273,6 +334,7 @@ const graphMode = (() => {
       msg = '<strong>Critical point, but D = 0</strong>, so the test can’t tell.';
     }
     el('graphClassify').innerHTML = msg;
+    el('graphReadout').innerHTML = `f(${fmt(x0)}, ${fmt(y0)}) = <b>${fmt(d.f0)}</b> &nbsp; |∇f| = <b>${fmt(g)}</b>`;
     const btn = el('findCritical');
     if (btn) btn.addEventListener('click', findCritical);
   }
@@ -310,9 +372,35 @@ const graphMode = (() => {
   }
 
   function init() {
-    view = new View3D(el('graphCanvas'), { size: 9.5, yaw: -0.65, pitch: 0.55 });
-    const select = el('graphPreset');
-    presets.forEach((p, i) => select.add(new Option(p.name, i)));
+    view = new View3D(el('graphCanvas'), { size: 11, yaw: -0.65, pitch: 0.55 });
+    const chips = el('graphChips');
+    presets.forEach((p, i) => {
+      if (!p.expr) return;
+      const b = document.createElement('button');
+      b.textContent = p.name.toLowerCase();
+      b.dataset.i = i;
+      chips.appendChild(b);
+    });
+    const markChip = i => chips.querySelectorAll('button').forEach(b => b.classList.toggle('active', +b.dataset.i === i));
+    const select = { set value(i) { markChip(+i); } };
+    chips.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      lastChanged = null;
+      ball = null;
+      markChip(+b.dataset.i);
+      loadPreset(+b.dataset.i);
+      build();
+    });
+    el('rollBall').addEventListener('click', () => {
+      ball = { x: sliders.x0.value, y: sliders.y0.value, vx: 0, vy: 0, trail: [], done: false };
+      animateBall();
+    });
+    el('climbButton').addEventListener('click', () => {
+      climb = !climb;
+      el('climbButton').classList.toggle('solid', climb);
+      build();
+    });
 
     const changed = key => () => { lastChanged = key; build(); };
     sliders.a = slider('paramA', changed('a'));
@@ -321,17 +409,13 @@ const graphMode = (() => {
     sliders.y0 = slider('pointY', changed('y0'));
     sliders.theta = slider('dirAngle', changed('theta'));
 
-    select.addEventListener('change', () => {
-      lastChanged = null;
-      loadPreset(+select.value);
-      build();
-    });
     el('graphExpr').addEventListener('input', e => {
       select.value = presets.length - 1;
       if (setExpr(e.target.value)) build();
     });
     Object.values(toggles).forEach(t => t.addEventListener('change', build));
 
+    markChip(0);
     loadPreset(0);
     build();
   }
@@ -460,12 +544,13 @@ const patchMode = (() => {
     const bu = [0, 1, 2, 3].map(i => fmt(b3(i, u0), 3)).join(' & ');
     const bv = [0, 1, 2, 3].map(j => fmt(b3(j, v0), 3)).join(' \\\\ ');
     tex('patchValue',
-      `z(${fmt(u0)}, ${fmt(v0)}) = \\begin{bmatrix} ${bu} \\end{bmatrix} Z \\begin{bmatrix} ${bv} \\end{bmatrix} = ${fmt(p.z, 3)}`, true);
+      `z(${scrub('patchU', fmt(u0))}, ${scrub('patchV', fmt(v0))}) = \\begin{bmatrix} ${bu} \\end{bmatrix} Z \\begin{bmatrix} ${bv} \\end{bmatrix} = ${fmt(p.z, 3)}`, true);
 
+    el('patchReadout').innerHTML = `S(${fmt(u0)}, ${fmt(v0)}) has height <b>${fmt(p.z, 3)}</b> &nbsp; selected P<sub>${sel.i}${sel.j}</sub> = <b>${fmt(Z[sel.i][sel.j], 2)}</b>`;
     const Q = curveControls(u0);
     const qs = Q.map((q, j) => hl(fmt(q), j === sel.j)).join(',\\ ');
     tex('patchCurve',
-      `Q_j = \\sum_{i=0}^{3} b_i(${fmt(u0)})\\, Z_{ij} \\;\\Rightarrow\\; (Q_0, Q_1, Q_2, Q_3) = (${qs})` +
+      `Q_j = \\sum_{i=0}^{3} b_i(${scrub('patchU', fmt(u0))})\\, Z_{ij} \\;\\Rightarrow\\; (Q_0, Q_1, Q_2, Q_3) = (${qs})` +
       `\\\\[6pt] z(${fmt(u0)}, v) = \\sum_{j=0}^{3} b_j(v)\\, Q_j`, true);
   }
 
@@ -485,13 +570,14 @@ const patchMode = (() => {
   }
 
   function drag(dx, dy) {
-    const scale = (Math.min(view.view.width, view.view.height) / view.size) * view.zoom;
-    Z[sel.i][sel.j] = clamp(Z[sel.i][sel.j] - dy / (scale * Math.cos(view.pitch) || 1), -4, 4);
+    const ppz = view.pixelsPerZ();
+    if (Math.abs(ppz) < 1e-3) return; // looking straight down, can't tell up from down
+    Z[sel.i][sel.j] = clamp(Z[sel.i][sel.j] - dy / ppz, -4, 4);
     build();
   }
 
   function init() {
-    view = new View3D(el('patchCanvas'), { size: 10, yaw: -0.6, pitch: 0.6, pick, drag });
+    view = new View3D(el('patchCanvas'), { size: 12, yaw: -0.6, pitch: 0.6, pick, drag });
     su = slider('patchU', build);
     sv = slider('patchV', build);
     Z = shapes.hill();
@@ -705,7 +791,7 @@ const tripleMode = (() => {
   }
 
   let view = null;
-  let sN, sR;
+  let sN, sR, sE;
 
   const regionKey = () => el('tripleRegion').value;
   const funcKey = () => el('tripleFunc').value;
@@ -816,6 +902,9 @@ const tripleMode = (() => {
       { c: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], nb: [0, 0, -1] },
       { c: [[0, 0, 1], [0, 1, 1], [1, 1, 1], [1, 0, 1]], nb: [0, 0, 1] }
     ];
+    // pulling the cells apart pushes each one away from the middle of the solid
+    const explode = sE.value;
+    const mid = { x: 0, y: 0, z: region.center(R) };
     let cells = 0;
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
@@ -824,9 +913,14 @@ const tripleMode = (() => {
           cells++;
           const t = fmax - fmin < 1e-9 ? 0.55 : 0.2 + 0.8 * (values[i][j][k] - fmin) / (fmax - fmin);
           const color = rampColor(t);
+          const m = map((i + 0.5) / n, (j + 0.5) / n, (k + 0.5) / n).p;
+          const off = { x: (m.x - mid.x) * explode * 0.5, y: (m.y - mid.y) * explode * 0.5, z: (m.z - mid.z) * explode * 0.5 };
           for (const face of faces) {
-            if (!hidden(i + face.nb[0], j + face.nb[1], k + face.nb[2])) continue;
-            const pts = face.c.map(([a, b, c]) => corner[i + a][j + b][k + c]);
+            if (explode < 0.01 && !hidden(i + face.nb[0], j + face.nb[1], k + face.nb[2])) continue;
+            const pts = face.c.map(([a, b, c]) => {
+              const q = corner[i + a][j + b][k + c];
+              return { x: q.x + off.x, y: q.y + off.y, z: q.z + off.z };
+            });
             view.poly(pts, color, { stroke: 'rgba(29, 29, 29, 0.55)', lineWidth: 0.7 });
           }
         }
@@ -854,14 +948,14 @@ const tripleMode = (() => {
 
     tex('tripleSetup',
       `\\iiint_E f\\,dV = \\int_{${lim[0]}}^{${lim[1]}}\\int_{${lim[2]}}^{${lim[3]}}\\int_{${lim[4]}}^{${lim[5]}} ${integrand}\\; ${sys.d}` +
-      `\\\\[4pt] \\small E:\\ ${region.desc}, \\quad R = ${fmt(R)}`, true);
+      `\\\\[4pt] \\small E:\\ ${region.desc}, \\quad R = ${scrub('tripleSize', fmt(R))}`, true);
     tex('tripleChange', sys.change.replace(/textcolor\{HL\}/g, `textcolor{${HL}}`), true);
 
     const fKey = funcKey();
     const S = riemann(region, sysKey, func.fn, R, n);
     const E = exact(region, fKey, R);
     tex('tripleSum',
-      `\\sum_{\\text{cells}} f(\\text{center}) \\cdot \\Delta V \\approx ${fmt(S, 4)}` +
+      `n = ${scrub('tripleN', n)}:\\quad \\sum_{\\text{cells}} f(\\text{center}) \\cdot \\Delta V \\approx ${fmt(S, 4)}` +
       (fKey === 'one' ? `\\qquad \\text{exact: } ${region.volumeTex} = ${fmt(E, 4)}` : `\\qquad \\text{exact} \\approx ${fmt(E, 4)}`), true);
 
     const err = Math.abs(S - E) / Math.abs(E || 1);
@@ -888,12 +982,13 @@ const tripleMode = (() => {
   }
 
   function init() {
-    view = new View3D(el('tripleCanvas'), { size: 6.5, yaw: -0.7, pitch: 0.45 });
+    view = new View3D(el('tripleCanvas'), { size: 9, yaw: -0.7, pitch: 0.45 });
     const rs = el('tripleRegion');
     Object.entries(regions).forEach(([k, r]) => rs.add(new Option(r.name, k)));
     const fs = el('tripleFunc');
     Object.entries(funcs).forEach(([k, f]) => fs.add(new Option(f.name, k)));
     sN = slider('tripleN', build, 0);
+    sE = slider('tripleExplode', build);
     sR = slider('tripleSize', build);
     [rs, fs, el('tripleCut'), el('tripleOutline')].forEach(e => e.addEventListener('change', build));
     document.querySelectorAll('input[name="coords"]').forEach(r => r.addEventListener('change', build));

@@ -2,7 +2,7 @@
 // and an expression parser so people can type their own functions
 
 const COLORS = {
-  bg: '#1d1d1d',
+  bg: '#1c1c1b',
   panel: '#252525',
   line: '#383838',
   grid: 'rgba(239, 230, 207, 0.06)',
@@ -43,14 +43,20 @@ function tex(el, src, display = false) {
   if (typeof el === 'string') el = document.getElementById(el);
   if (!el) return;
   if (window.katex) {
-    katex.render(src, el, { throwOnError: false, displayMode: display });
+    katex.render(src, el, { throwOnError: false, displayMode: display, trust: true, strict: false });
   } else {
     el.textContent = src;
   }
 }
 
+// highlighter pen behind part of an equation
 function hl(s, on = true) {
-  return on ? `\\textcolor{${HL}}{${s}}` : s;
+  return on ? `\\htmlClass{hl}{${s}}` : s;
+}
+
+// a number you can drag sideways to move the slider with this id
+function scrub(sliderId, s, flip = false) {
+  return `\\htmlData{scrub=${sliderId}${flip ? ', flip=1' : ''}}{${s}}`;
 }
 
 // ---------- canvas ----------
@@ -92,6 +98,83 @@ class Plot2D {
     this.onResize = opts.onResize;
     this.view = setupCanvas(canvas, () => this.onResize && this.onResize());
     this.ctx = this.view.ctx;
+    if (opts.panZoom) this.enablePanZoom(opts);
+    if (opts.probe) this.enableProbe(opts.probe);
+  }
+
+  // drag empty space to pan, scroll to zoom around the cursor.
+  // claim(pos) lets the page keep a drag for itself (like grabbing a point)
+  enablePanZoom(opts) {
+    const c = this.canvas;
+    let drag = null;
+    this.moved = false;
+    c.addEventListener('pointerdown', e => {
+      const pos = pointerPos(c, e);
+      if (opts.claim && opts.claim(pos)) return;
+      drag = { pos, bounds: { ...this.bounds } };
+      this.moved = false;
+      c.setPointerCapture(e.pointerId);
+    });
+    c.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const pos = pointerPos(c, e);
+      if (!this.moved && Math.hypot(pos.x - drag.pos.x, pos.y - drag.pos.y) < 4) return;
+      this.moved = true;
+      c.style.cursor = 'grabbing';
+      const f = this.frame();
+      const dx = (pos.x - drag.pos.x) / f.sx, dy = (pos.y - drag.pos.y) / f.sy;
+      const b = drag.bounds;
+      this.bounds = { xmin: b.xmin - dx, xmax: b.xmax - dx, ymin: b.ymin + dy, ymax: b.ymax + dy };
+      opts.onView && opts.onView();
+    });
+    const end = e => {
+      if (!drag) return;
+      drag = null;
+      c.style.cursor = '';
+      if (c.hasPointerCapture(e.pointerId)) c.releasePointerCapture(e.pointerId);
+      if (this.moved) opts.onViewEnd && opts.onViewEnd();
+    };
+    c.addEventListener('pointerup', end);
+    c.addEventListener('pointercancel', end);
+    c.addEventListener('wheel', e => {
+      e.preventDefault();
+      const pos = pointerPos(c, e);
+      const w = this.toWorld(pos.x, pos.y);
+      const k = Math.exp(e.deltaY * 0.0012);
+      const b = this.bounds;
+      this.bounds = {
+        xmin: w.x + (b.xmin - w.x) * k, xmax: w.x + (b.xmax - w.x) * k,
+        ymin: w.y + (b.ymin - w.y) * k, ymax: w.y + (b.ymax - w.y) * k
+      };
+      opts.onView && opts.onView();
+      clearTimeout(this.wheelTimer);
+      this.wheelTimer = setTimeout(() => opts.onViewEnd && opts.onViewEnd(), 150);
+    }, { passive: false });
+  }
+
+  // true right after a drag, so a click handler can ignore the click that ends a pan
+  wasDrag() {
+    const m = this.moved;
+    this.moved = false;
+    return m;
+  }
+
+  // little label that follows the cursor. fn(world) returns html or ''
+  enableProbe(fn) {
+    const el = document.createElement('div');
+    el.className = 'probe';
+    el.hidden = true;
+    document.body.appendChild(el);
+    this.canvas.addEventListener('pointermove', e => {
+      const p = pointerPos(this.canvas, e);
+      const html = fn(this.toWorld(p.x, p.y));
+      el.hidden = !html || document.body.classList.contains('scrubbing');
+      if (!html) return;
+      el.innerHTML = html;
+      el.style.left = e.clientX + 'px';
+      el.style.top = e.clientY + 'px';
+    });
+    this.canvas.addEventListener('pointerleave', () => (el.hidden = true));
   }
 
   get width() { return this.view.width; }
@@ -525,15 +608,18 @@ function negated(n, params) {
   return n;
 }
 
-function toTex(n, params = {}, highlight = null) {
-  const T = m => toTex(m, params, highlight);
+// scrubs maps a param name to the slider that controls it, so the number can be dragged
+function toTex(n, params = {}, highlight = null, scrubs = null) {
+  const T = m => toTex(m, params, highlight, scrubs);
   switch (n.type) {
     case 'num': return num(n.value, 3);
     case 'const': return n.name === 'pi' ? '\\pi' : 'e';
     case 'var': {
       if (n.name in params) {
         const v = n.flip ? -params[n.name] : params[n.name];
-        return hl(num(v, 2), highlight === n.name);
+        let str = num(v, 2);
+        if (scrubs && scrubs[n.name]) str = scrub(scrubs[n.name], str, n.flip);
+        return hl(str, highlight === n.name);
       }
       return n.name === 'theta' ? '\\theta' : n.name;
     }
