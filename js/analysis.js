@@ -149,8 +149,8 @@ const limitMode = (() => {
       ctx.stroke();
     }
 
-    plot.text('L + ε', plot.bounds.xmax, L + eps, COLORS.yellow, 'right', 'bottom', '12px "IBM Plex Mono", monospace');
-    plot.text('L − ε', plot.bounds.xmax, L - eps, COLORS.yellow, 'right', 'top', '12px "IBM Plex Mono", monospace');
+    plot.text('L + ε', plot.bounds.xmax, L + eps, COLORS.yellow, 'right', 'bottom', '12px "Space Mono", monospace');
+    plot.text('L − ε', plot.bounds.xmax, L - eps, COLORS.yellow, 'right', 'top', '12px "Space Mono", monospace');
 
     el('limitReadout').innerHTML = `ε = <b>${fmt(eps)}</b> &nbsp; δ = <b>${delta >= 3 ? 'anything' : fmt(delta, 4)}</b>`;
     return { delta, bad };
@@ -298,7 +298,7 @@ const seqMode = (() => {
     if (N !== null && N <= count) {
       plot.line(N - 0.5, v.ymin, N - 0.5, v.ymax, COLORS.white, 1, [3, 3]);
       const top = plot.toWorld(0, 40).y;
-      plot.text(` N = ${N}`, N - 0.5, top, COLORS.white, 'left', 'top', '12px "IBM Plex Mono", monospace');
+      plot.text(` N = ${N}`, N - 0.5, top, COLORS.white, 'left', 'top', '12px "Space Mono", monospace');
     }
 
     const r = count > 120 ? 2 : 3;
@@ -484,8 +484,8 @@ const riemannMode = (() => {
     gap.line(0, 0, 100, 0, COLORS.axis, 1);
     gap.path(data, COLORS.creamDim, 1.5);
     gap.dot(n, data[n - 1].y, 4.5, COLORS.yellow);
-    gap.text('U − L', 1, max * 1.1, COLORS.muted, 'left', 'top', '11px "IBM Plex Sans", sans-serif');
-    gap.text('n →', 100, 0, COLORS.muted, 'right', 'bottom', '11px "IBM Plex Sans", sans-serif');
+    gap.text('U − L', 1, max * 1.1, COLORS.muted, 'left', 'top', '11px Sora, sans-serif');
+    gap.text('n →', 100, 0, COLORS.muted, 'right', 'bottom', '11px Sora, sans-serif');
   }
 
   function equations(S) {
@@ -637,7 +637,7 @@ const uniformMode = (() => {
     const s = supNorm(n);
     const y0 = preset.lim(s.at), y1 = fn(s.at, n);
     plot.line(s.at, y0, s.at, y1, COLORS.white, 1.5, [3, 3]);
-    plot.text('sup', s.at, (y0 + y1) / 2, COLORS.white, 'left', 'middle', '12px "IBM Plex Mono", monospace');
+    plot.text('sup', s.at, (y0 + y1) / 2, COLORS.white, 'left', 'middle', '12px "Space Mono", monospace');
 
     el('uniformReadout').innerHTML = `n = <b>${n}</b> &nbsp; sup |fₙ − f| = <b>${fmt(s.value, 3)}</b>`;
     return s;
@@ -656,11 +656,11 @@ const uniformMode = (() => {
     sup.begin();
     sup.line(0, 0, 60, 0, COLORS.axis, 1);
     sup.line(0, eps, 60, eps, 'rgba(233, 196, 106, 0.6)', 1, [5, 4]);
-    sup.text('ε', 60, eps, COLORS.yellow, 'right', 'bottom', '12px "IBM Plex Mono", monospace');
+    sup.text('ε', 60, eps, COLORS.yellow, 'right', 'bottom', '12px "Space Mono", monospace');
     sup.path(data, COLORS.creamDim, 1.5);
     data.forEach(d => sup.dot(d.x, d.y, 1.8, d.y < eps ? COLORS.yellow : COLORS.cream));
     sup.dot(n, data[n - 1].y, 5, COLORS.yellow, COLORS.bg);
-    sup.text('n →', 60, 0, COLORS.muted, 'right', 'top', '11px "IBM Plex Sans", sans-serif');
+    sup.text('n →', 60, 0, COLORS.muted, 'right', 'top', '11px Sora, sans-serif');
   }
 
   function equations(s) {

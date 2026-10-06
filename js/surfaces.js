@@ -127,10 +127,7 @@ const graphMode = (() => {
     // floor square
     const c = [[-DOMAIN, -DOMAIN], [DOMAIN, -DOMAIN], [DOMAIN, DOMAIN], [-DOMAIN, DOMAIN]].map(([x, y]) => ({ x, y, z: floor }));
     for (let k = 0; k < 4; k++) view.line(c[k], c[(k + 1) % 4], 'rgba(239, 230, 207, 0.25)', 1, { pieces: 6 });
-    view.label({ x: DOMAIN + 0.3, y: 0, z: floor }, 'x', COLORS.cream);
-    view.label({ x: 0, y: DOMAIN + 0.3, z: floor }, 'y', COLORS.cream);
-    view.line({ x: 0, y: 0, z: floor }, { x: 0, y: 0, z: zhi + 0.6 }, 'rgba(239, 230, 207, 0.25)', 1, { pieces: 8 });
-    view.label({ x: 0, y: 0, z: zhi + 0.7 }, 'z', COLORS.cream);
+    view.infiniteAxes();
 
     // the surface
     const mesh = toggles.mesh.checked;
@@ -465,6 +462,7 @@ const patchMode = (() => {
     for (let k = 0; k < 4; k++) view.line(c[k], c[(k + 1) % 4], 'rgba(239, 230, 207, 0.22)', 1, { pieces: 6 });
     view.label({ x: 3.4, y: -3, z: floor }, 'u →', COLORS.muted);
     view.label({ x: -3, y: 3.4, z: floor }, 'v →', COLORS.muted);
+    view.infiniteAxes({ labelAt: 5.5 });
 
     let zlo = Infinity, zhi = -Infinity;
     const N = 24;
@@ -859,7 +857,7 @@ const tripleMode = (() => {
 
     view.center = { x: 0, y: 0, z: region.center(R) };
     view.clear();
-    view.axes(3.2);
+    view.infiniteAxes({ labelAt: 3.6 });
 
     // corners of every cell
     const corner = [];

@@ -125,7 +125,7 @@ function drawTicks() {
     ctx.lineTo(s.x + nx * 6, s.y + ny * 6);
     ctx.stroke();
     ctx.fillStyle = COLORS.muted;
-    ctx.font = '10px "IBM Plex Mono", monospace';
+    ctx.font = '10px "Space Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(t.toFixed(1), s.x + nx * 16, s.y + ny * 16);
@@ -147,7 +147,7 @@ function label(str, p, color, side) {
   const s = plot.toScreen(p.x, p.y);
   const ctx = plot.ctx;
   ctx.fillStyle = color;
-  ctx.font = '600 13px "IBM Plex Sans", sans-serif';
+  ctx.font = '600 13px Sora, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = side < 0 ? 'bottom' : 'top';
   ctx.fillText(str, s.x + 10, s.y + side * 8);
@@ -225,7 +225,7 @@ function renderBasis() {
     const s = basis.toScreen(peak, bernstein(n, i, peak));
     const ctx = basis.ctx;
     ctx.fillStyle = i === active ? COLORS.yellowBright : COLORS.muted;
-    ctx.font = '11px "IBM Plex Mono", monospace';
+    ctx.font = '11px "Space Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillText(`b${i}`, clamp(s.x, 12, basis.width - 12), Math.max(12, s.y - 4));

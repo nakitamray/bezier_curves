@@ -218,6 +218,43 @@ class View3D {
     faces.forEach(f => this.poly(f.map(i => c[i]), color, opts));
   }
 
+  // axes that keep going in both directions and fade out into the distance, with unit ticks near the origin
+  infiniteAxes(opts = {}) {
+    const L = opts.length || 60;
+    const names = opts.names || ['x', 'y', 'z'];
+    const labelAt = opts.labelAt || 4.5;
+    const dirs = [{ x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: 1 }];
+    const at = (d, t) => ({ x: d.x * t, y: d.y * t, z: d.z * t });
+    dirs.forEach((d, i) => {
+      // short pieces near the origin (so depth sorting works), longer ones far away
+      const marks = [];
+      for (let t = -L; t < -8; t += 4) marks.push(t);
+      for (let t = -8; t < 8; t += 0.5) marks.push(t);
+      for (let t = 8; t <= L; t += 4) marks.push(t);
+      for (let k = 0; k < marks.length - 1; k++) {
+        const t0 = marks[k], t1 = marks[k + 1];
+        const mid = Math.abs((t0 + t1) / 2);
+        const alpha = 0.55 * Math.max(0, 1 - mid / L) * (mid < 6 ? 1 : 0.75);
+        if (alpha < 0.02) continue;
+        this.items.push({ kind: 'line', a: at(d, t0), b: at(d, t1), color: `rgba(239, 230, 207, ${alpha.toFixed(3)})`, width: 1.2, bias: 0.02 });
+      }
+      // ticks every unit, numbers on the even ones
+      const other = dirs[(i + 1) % 3];
+      for (let t = -6; t <= 6; t++) {
+        if (t === 0) continue;
+        const p = at(d, t);
+        const q = { x: p.x + other.x * 0.08, y: p.y + other.y * 0.08, z: p.z + other.z * 0.08 };
+        const r = { x: p.x - other.x * 0.08, y: p.y - other.y * 0.08, z: p.z - other.z * 0.08 };
+        this.items.push({ kind: 'line', a: q, b: r, color: 'rgba(239, 230, 207, 0.5)', width: 1, bias: 0.02 });
+        if (t % 2 === 0 && opts.numbers !== false) {
+          this.items.push({ kind: 'text', p, text: String(t), color: 'rgba(239, 230, 207, 0.45)', top: false, font: '10px "Space Mono", monospace', dx: 4, dy: 8, bias: 0.02 });
+        }
+      }
+      this.label(at(d, labelAt), names[i], COLORS.yellow, { dx: 6, dy: -6, font: '700 14px Syne, sans-serif' });
+      this.label(at(d, -labelAt), '−' + names[i], 'rgba(239, 230, 207, 0.35)', { dx: 6, dy: -6, font: '600 12px Syne, sans-serif' });
+    });
+  }
+
   axes(len = 3, opts = {}) {
     const color = opts.color || 'rgba(239, 230, 207, 0.4)';
     const names = opts.names || ['x', 'y', 'z'];
@@ -257,6 +294,8 @@ class View3D {
   }
 
   drawItem(ctx, it) {
+    if ((it.kind === 'line' || it.kind === 'head') && (it.sa.depth < 1 || it.sb.depth < 1)) return;
+    if ((it.kind === 'point' || it.kind === 'text') && it.s.depth < 1) return;
     if (it.kind === 'poly') {
       let [r, g, b] = it.color;
       if (it.shade) {
@@ -308,7 +347,7 @@ class View3D {
       }
     } else if (it.kind === 'text') {
       ctx.fillStyle = it.color;
-      ctx.font = it.font || '500 13px "IBM Plex Sans", sans-serif';
+      ctx.font = it.font || '500 13px Sora, sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText(it.text, it.s.x + it.dx, it.s.y + it.dy);

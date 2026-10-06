@@ -258,7 +258,7 @@ class Plot2D {
 
     if (opts.labels === false) return;
     ctx.fillStyle = COLORS.axisText;
-    ctx.font = '10px "IBM Plex Mono", monospace';
+    ctx.font = '10px "Space Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     let i = 0;
@@ -360,7 +360,7 @@ class Plot2D {
     const s = this.toScreen(x, y);
     const ctx = this.ctx;
     ctx.fillStyle = color;
-    ctx.font = font || '500 12px "IBM Plex Sans", sans-serif';
+    ctx.font = font || '500 12px Sora, sans-serif';
     ctx.textAlign = align;
     ctx.textBaseline = baseline;
     ctx.fillText(str, s.x, s.y);

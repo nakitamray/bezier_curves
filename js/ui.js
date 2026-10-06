@@ -17,6 +17,13 @@ function store(key, value) {
 function setupCard(card) {
   const head = card.querySelector('.card-head');
   const fold = card.querySelector('.fold');
+  // a second button next to the fold arrow that makes the whole card smaller
+  const shrink = document.createElement('button');
+  shrink.className = 'shrink';
+  shrink.setAttribute('aria-label', 'make smaller');
+  shrink.title = 'smaller / bigger';
+  shrink.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  fold.before(shrink);
   const key = `card:${PAGE}:${card.dataset.card}`;
   const saved = store(key) || {};
   card.dataset.home = card.getAttribute('style') || '';
@@ -31,14 +38,49 @@ function setupCard(card) {
     card.style.bottom = 'auto';
   };
 
+  // scale toward whichever screen edge the card lives on, so it stays tucked in its corner
+  const setOrigin = () => {
+    const r = card.getBoundingClientRect();
+    const right = r.left + r.width / 2 > window.innerWidth / 2;
+    const bottom = card.style.bottom && card.style.bottom !== 'auto';
+    card.style.transformOrigin = `${bottom ? 'bottom' : 'top'} ${right ? 'right' : 'left'}`;
+  };
+
   if (saved.folded) card.classList.add('folded');
+  if (saved.compact && !isSmall()) card.classList.add('compact');
   if (saved.x !== undefined && !isSmall()) place(saved.x, saved.y);
+  if (saved.w && !isSmall()) card.style.width = saved.w;
+  if (saved.h && !isSmall()) card.style.height = saved.h;
+  setOrigin();
 
   const save = () => store(key, {
     folded: card.classList.contains('folded'),
+    compact: card.classList.contains('compact'),
     x: card.style.left ? parseFloat(card.style.left) : undefined,
-    y: card.style.top ? parseFloat(card.style.top) : undefined
+    y: card.style.top ? parseFloat(card.style.top) : undefined,
+    w: card.style.width || undefined,
+    h: card.style.height || undefined
   });
+
+  shrink.addEventListener('click', e => {
+    e.stopPropagation();
+    setOrigin();
+    card.classList.toggle('compact');
+    save();
+    setTimeout(cardsMoved, 50);
+  });
+
+  // remember the size when someone drags the corner
+  let resizeTimer = null;
+  new ResizeObserver(() => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (card.style.width || card.style.height) {
+        save();
+        cardsMoved();
+      }
+    }, 300);
+  }).observe(card);
 
   fold.addEventListener('click', e => {
     e.stopPropagation();
@@ -67,6 +109,7 @@ function setupCard(card) {
   const end = () => {
     if (!start) return;
     start = null;
+    setOrigin();
     save();
     cardsMoved();
   };
@@ -83,7 +126,7 @@ document.querySelectorAll('.card').forEach(setupCard);
 function resetCards() {
   document.querySelectorAll('.card').forEach(card => {
     card.setAttribute('style', card.dataset.home);
-    card.classList.remove('folded');
+    card.classList.remove('folded', 'compact');
     store(`card:${PAGE}:${card.dataset.card}`, {});
   });
   cardsMoved();

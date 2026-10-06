@@ -8,11 +8,11 @@ Everything runs in the browser with plain HTML, CSS and JavaScript. No build ste
 
 The visualization fills the whole screen. Equations and controls live on note cards pinned on top of it.
 
-- **drag a card** by its title to move it, double-click the title (or the arrow) to fold it, **H** hides every card, "tidy cards" puts them back
+- **drag a card** by its title to move it, double-click the title (or the arrow) to fold it, the – button makes it smaller, drag the bottom corner to resize, **H** hides every card, "tidy cards" puts them back
 - **every underlined number in an equation is a handle.** drag it left or right and the picture changes with it (hold shift for fine control)
 - 2D boards: drag empty space to pan, scroll to zoom, hover to read values
-- 3D views: drag to spin in any direction, shift-drag or right-drag to pan, scroll to zoom, double-click to reset
-- the differential equations pages keep a **log** of every equation you try. click one to go back to it, or toggle it to draw its solutions underneath the current one. the log is saved in your browser
+- 3D views: drag to spin in any direction, shift-drag or right-drag to pan, scroll to zoom, double-click to reset. the axes run off forever in both directions so you always know which way is which
+- the differential equations pages keep a **log** of every equation you try (typed ones get logged once you stop typing). hover an entry to preview it, click to go back to it, or toggle it to keep its numbered, dashed solutions on the board. the log is saved in your browser
 
 ## Pages
 
@@ -65,6 +65,7 @@ js/surfaces.js   3d surfaces page
 js/diffeq.js     differential equations page
 js/analysis.js   real analysis page
 lib/katex/       KaTeX for rendering equations (MIT license)
+lib/fonts/       Syne, Sora and Space Mono (SIL Open Font License)
 ```
 
 ## Typing your own functions

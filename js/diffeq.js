@@ -255,8 +255,42 @@ class EquationLog {
     this.current = null;
     this.timer = null;
     this.colorIndex = this.entries.length;
+    this.counter = this.entries.reduce((m, e) => Math.max(m, e.n || 0), 0);
+    this.preview = null;
 
-    document.getElementById(clearId).addEventListener('click', () => {
+    // show all / hide all
+    const clearBtn = document.getElementById(clearId);
+    const allBtn = document.createElement('button');
+    allBtn.className = 'btn';
+    allBtn.textContent = 'show all';
+    clearBtn.before(allBtn);
+    allBtn.addEventListener('click', () => {
+      const others = this.entries.filter(e => e.id !== this.current);
+      const on = others.some(e => !e.show);
+      others.forEach(e => (e.show = on));
+      allBtn.textContent = on ? 'hide all' : 'show all';
+      this.save();
+      this.render();
+      opts.onChange();
+    });
+
+    // hovering an entry previews it on the board
+    this.list.addEventListener('mouseover', e => {
+      const li = e.target.closest('li[data-id]');
+      const id = li && li.dataset.id !== this.current ? li.dataset.id : null;
+      if (id !== this.preview) {
+        this.preview = id;
+        opts.onChange();
+      }
+    });
+    this.list.addEventListener('mouseleave', () => {
+      if (this.preview) {
+        this.preview = null;
+        opts.onChange();
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
       this.entries = this.entries.filter(e => e.id === this.current);
       this.save();
       this.render();
@@ -270,6 +304,7 @@ class EquationLog {
       const act = e.target.closest('button') && e.target.closest('button').dataset.act;
       if (act === 'show') {
         entry.show = !entry.show;
+        toast(entry.show ? `#${entry.n} is drawn underneath` : `#${entry.n} hidden`);
       } else if (act === 'del') {
         this.entries = this.entries.filter(x => x !== entry);
         if (this.current === entry.id) this.current = null;
@@ -293,6 +328,7 @@ class EquationLog {
     let entry = force ? null : this.entries.find(e => this.opts.keyOf(e.data) === key);
     if (!entry) {
       entry = {
+        n: ++this.counter,
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
         data: JSON.parse(JSON.stringify(data)),
         color: LOG_COLORS[this.colorIndex++ % LOG_COLORS.length],
@@ -326,8 +362,33 @@ class EquationLog {
     }, 350);
   }
 
+  // log it once things stop changing for a moment
+  settle(getData, ms = 900) {
+    clearTimeout(this.settleTimer);
+    this.settleTimer = setTimeout(() => this.add(getData()), ms);
+  }
+
   overlays() {
-    return this.entries.filter(e => e.show && e.id !== this.current);
+    return this.entries.filter(e => e.id !== this.current && (e.show || e.id === this.preview));
+  }
+
+  // dashed curves for an older entry plus its number, so you can tell which is which
+  drawOverlay(plot, entry, makeF) {
+    const curves = this.curvesFor(entry, plot, makeF);
+    const strong = entry.id === this.preview;
+    curves.forEach(c => plot.path(c, fade(entry.color, strong ? 1 : 0.8), strong ? 3 : 2, [8, 4]));
+    // number tag in the middle of the longest visible curve
+    const v = plot.visible();
+    let best = null;
+    for (const c of curves) {
+      const inside = c.filter(p => p.x > v.xmin && p.x < v.xmax && p.y > v.ymin && p.y < v.ymax);
+      if (!best || inside.length > best.length) best = inside;
+    }
+    if (best && best.length) {
+      const p = best[Math.floor(best.length * 0.6)];
+      plot.dot(p.x, p.y, 10, fade(entry.color, 0.9));
+      plot.text(String(entry.n), p.x, p.y, '#1c1c1b', 'center', 'middle', '700 11px "Space Mono", monospace');
+    }
   }
 
   // solution curves for an older entry, worked out once and reused until something changes
@@ -339,7 +400,15 @@ class EquationLog {
     let curves = [];
     try {
       const G = makeF(entry.data);
-      curves = (entry.data.starts || []).map(p => trajectory(G, p, plot.visible(), 0.01, 3000));
+      let starts = entry.data.starts || [];
+      if (!starts.length) {
+        // nothing was clicked for this one, so start a few curves around the view
+        const v = plot.visible();
+        const cx = (v.xmin + v.xmax) / 2, cy = (v.ymin + v.ymax) / 2;
+        const r = Math.min(v.xmax - v.xmin, v.ymax - v.ymin) / 4;
+        starts = [0, 1, 2, 3, 4, 5].map(k => ({ x: cx + r * Math.cos(k * 1.05), y: cy + r * Math.sin(k * 1.05) }));
+      }
+      curves = starts.map(p => trajectory(G, p, plot.visible(), 0.01, 3000));
     } catch (e) { /* an entry that doesn't parse any more, just skip it */ }
     this.cache[entry.id] = { key, curves };
     return curves;
@@ -357,8 +426,11 @@ class EquationLog {
     this.list.innerHTML = this.entries.map(e => `
       <li data-id="${e.id}" class="${e.id === this.current ? 'current' : ''}${e.show || e.id === this.current ? '' : ' hidden-overlay'}">
         <span class="swatch" style="background:${e.color}"></span>
+        <span class="num">${e.n || ''}</span>
         <span class="tex"></span>
-        <button data-act="show" title="draw it underneath">${e.show || e.id === this.current ? EYE_ON : EYE_OFF}</button>
+        ${e.id === this.current
+          ? '<span class="now">now</span>'
+          : `<button data-act="show" title="draw it underneath">${e.show ? EYE_ON : EYE_OFF}</button>`}
         <button data-act="del" title="remove">×</button>
       </li>`).join('');
     this.list.querySelectorAll('li[data-id]').forEach(li => {
@@ -477,10 +549,10 @@ const slopeMode = (() => {
     if (el('slopeFlow').checked) particles.draw(plot);
 
     for (const entry of log.overlays()) {
-      log.curvesFor(entry, plot, d => {
+      log.drawOverlay(plot, entry, d => {
         const c = compileExpr(d.expr, ['x', 'y', 'a', 'b']);
         return (x, y) => [1, c.fn({ x, y, a: d.a, b: d.b })];
-      }).forEach(c => plot.path(c, fade(entry.color, 0.75), 2, [7, 4]));
+      });
     }
 
     curves.forEach((c, i) => plot.path(c, i === curves.length - 1 ? COLORS.white : 'rgba(250, 250, 250, 0.5)', 2.5));
@@ -592,9 +664,14 @@ const slopeMode = (() => {
       log.add(data());
     });
 
+    let typing = null;
     el('slopeExpr').addEventListener('input', e => {
       mark(-1);
-      if (setExpr(e.target.value)) update();
+      clearTimeout(typing);
+      if (setExpr(e.target.value)) {
+        update();
+        typing = setTimeout(commitTyped, 1200); // logs it once you stop typing
+      }
     });
     el('slopeExpr').addEventListener('keydown', e => { if (e.key === 'Enter') commitTyped(); });
     el('slopeExpr').addEventListener('blur', commitTyped);
@@ -682,10 +759,10 @@ const linearMode = (() => {
     if (el('linearFlow').checked) particles.draw(plot);
 
     for (const entry of log.overlays()) {
-      log.curvesFor(entry, plot, d => {
+      log.drawOverlay(plot, entry, d => {
         const [a, b, c, e] = d.m;
         return (x, y) => [a * x + b * y, c * x + e * y];
-      }).forEach(c => plot.path(c, fade(entry.color, 0.75), 2, [7, 4]));
+      });
     }
 
     if (el('linearEigen').checked && info.real) {
@@ -694,7 +771,7 @@ const linearMode = (() => {
       const vecs = info.repeated ? [[info.v1, info.l1]] : [[info.v1, info.l1], [info.v2, info.l2]];
       for (const [vec, l] of vecs) {
         plot.line(-vec.x * R, -vec.y * R, vec.x * R, vec.y * R, 'rgba(233, 196, 106, 0.7)', 1.5, [6, 4]);
-        plot.text(`λ = ${fmt(l)}`, vec.x * 3.4, vec.y * 3.4, COLORS.yellow, 'left', 'bottom', '600 13px "IBM Plex Sans", sans-serif');
+        plot.text(`λ = ${fmt(l)}`, vec.x * 3.4, vec.y * 3.4, COLORS.yellow, 'left', 'bottom', '600 13px Sora, sans-serif');
       }
     }
 
@@ -708,7 +785,7 @@ const linearMode = (() => {
     trace.begin();
     trace.grid({ labels: false, step: 1, ystep: 1 });
     trace.graph(t => (t * t) / 4, COLORS.creamDim, 1.5);
-    const label = (str, x, y) => trace.text(str, x, y, COLORS.muted, 'center', 'middle', '11px "IBM Plex Sans", sans-serif');
+    const label = (str, x, y) => trace.text(str, x, y, COLORS.muted, 'center', 'middle', '11px Sora, sans-serif');
     label('saddles', 0, -1.8);
     label('spiral sinks', -1.6, 4.6);
     label('spiral sources', 1.6, 4.6);
@@ -789,7 +866,7 @@ const linearMode = (() => {
     });
 
     for (const k of ['a', 'b', 'c', 'd']) {
-      s[k] = slider('mat' + k.toUpperCase(), () => { lastChanged = k; mark(-1); update(); log.update(data()); });
+      s[k] = slider('mat' + k.toUpperCase(), () => { lastChanged = k; mark(-1); update(); log.settle(data); });
     }
     mark = chipRow('linearChips', presets, i => {
       setMatrix(presets[i].m);
@@ -828,7 +905,7 @@ const linearMode = (() => {
     };
     el('traceCanvas').addEventListener('pointerdown', e => { tracing = true; el('traceCanvas').setPointerCapture(e.pointerId); pickTrace(e); });
     el('traceCanvas').addEventListener('pointermove', e => { if (tracing) pickTrace(e); });
-    el('traceCanvas').addEventListener('pointerup', () => { tracing = false; log.update(data()); });
+    el('traceCanvas').addEventListener('pointerup', () => { tracing = false; log.settle(data, 100); });
 
     const cur = log.entries[0];
     if (cur) {
@@ -949,16 +1026,16 @@ const nonlinMode = (() => {
       for (const [a, b] of zeroSet(plot, (x, y) => F(x, y)[1])) plot.line(a.x, a.y, b.x, b.y, COLORS.yellow, 1.6);
     }
     for (const entry of log.overlays()) {
-      log.curvesFor(entry, plot, d => {
+      log.drawOverlay(plot, entry, d => {
         const gx = compileExpr(d.fx, ['x', 'y', 'a', 'b']), gy = compileExpr(d.fy, ['x', 'y', 'a', 'b']);
         return (x, y) => [gx.fn({ x, y, a: d.a, b: d.b }), gy.fn({ x, y, a: d.a, b: d.b })];
-      }).forEach(c => plot.path(c, fade(entry.color, 0.75), 2, [7, 4]));
+      });
     }
     curves.forEach(c => plot.path(c, COLORS.white, 2));
     starts.forEach(p => plot.dot(p.x, p.y, 4, COLORS.bg, COLORS.white));
     equilibria.forEach((e, i) => {
       plot.dot(e.x, e.y, 7, e.info.stable ? COLORS.yellow : COLORS.bg, COLORS.yellow, 2.5);
-      plot.text(' ' + String.fromCharCode(65 + i), e.x, e.y, COLORS.yellowBright, 'left', 'bottom', '600 13px "IBM Plex Sans", sans-serif');
+      plot.text(' ' + String.fromCharCode(65 + i), e.x, e.y, COLORS.yellowBright, 'left', 'bottom', '600 13px Sora, sans-serif');
     });
   }
 
@@ -1043,8 +1120,16 @@ const nonlinMode = (() => {
       log.add(data());
     });
 
+    let typing = null;
     ['nonlinX', 'nonlinY'].forEach(id => {
-      el(id).addEventListener('input', () => { mark(-1); if (compile()) update(); });
+      el(id).addEventListener('input', () => {
+        mark(-1);
+        clearTimeout(typing);
+        if (compile()) {
+          update();
+          typing = setTimeout(commitTyped, 1200);
+        }
+      });
       el(id).addEventListener('keydown', e => { if (e.key === 'Enter') commitTyped(); });
       el(id).addEventListener('blur', commitTyped);
     });
