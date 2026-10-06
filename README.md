@@ -4,10 +4,21 @@ Interactive visualizations for linear algebra, multivariable calculus, different
 
 Everything runs in the browser with plain HTML, CSS and JavaScript. No build step.
 
+## How it works
+
+The visualization fills the whole screen. Equations and controls live on note cards pinned on top of it.
+
+- **drag a card** by its title to move it, double-click the title (or the arrow) to fold it, **H** hides every card, "tidy cards" puts them back
+- **every underlined number in an equation is a handle.** drag it left or right and the picture changes with it (hold shift for fine control)
+- 2D boards: drag empty space to pan, scroll to zoom, hover to read values
+- 3D views: drag to spin in any direction, shift-drag or right-drag to pan, scroll to zoom, double-click to reset
+- the differential equations pages keep a **log** of every equation you try. click one to go back to it, or toggle it to draw its solutions underneath the current one. the log is saved in your browser
+
 ## Pages
 
 **Bézier Curves** (`index.html`)
-- drag control points, sweep t, watch the de Casteljau construction
+- drag control points, sweep t (or drag the yellow dot along the curve), watch the de Casteljau construction
+- shape presets and t marks that show where the curve speeds up and slows down
 - Bernstein form with a table of weights at the current t
 - matrix form `B(t) = T · M · P`
 - touching a point highlights its term in every equation, its row in M and P, and its basis curve
@@ -15,8 +26,9 @@ Everything runs in the browser with plain HTML, CSS and JavaScript. No build ste
 
 **3D Surfaces** (`surfaces.html`)
 - graphs `z = f(x, y)`: type your own function or use a preset, then move parameters a and b. Shows partial derivatives as slopes of traces, the gradient, the tangent plane, directional derivatives, level curves and the second derivative test (with a Newton's method button to find critical points)
+- drop a ball and watch it roll downhill, or draw the steepest-ascent path up the gradient
 - Bézier surfaces: a bicubic patch you can sculpt by dragging control points, with the matrix form `z = U M Z Mᵀ Vᵀ` and the "surface made of curves" view
-- triple integrals: balls, cylinders, cones, ice cream cones and paraboloids in rectangular, cylindrical and spherical coordinates. The Riemann sum cells are drawn in 3D so you can see how each coordinate system chops up the region
+- triple integrals: balls, cylinders, cones, ice cream cones and paraboloids in rectangular, cylindrical and spherical coordinates. The Riemann sum cells are drawn in 3D (and can be pulled apart) so you can see how each coordinate system chops up the region
 
 **Differential Equations** (`diffeq.html`)
 - slope fields with click-to-solve curves and Euler's method step by step
@@ -44,7 +56,8 @@ and go to http://localhost:8000.
 ```
 index.html, surfaces.html, diffeq.html, analysis.html
 style.css
-js/common.js     shared helpers: 2d plotting, sliders, katex, an expression parser
+js/common.js     shared helpers: 2d plotting with pan/zoom, sliders, katex, an expression parser
+js/ui.js         the floating cards, hiding them, and dragging numbers in equations
 js/math.js       bezier math (bernstein, matrix form, de casteljau, convex hull)
 js/view3d.js     small 3d renderer on a 2d canvas (painter's algorithm)
 js/bezier.js     bezier page

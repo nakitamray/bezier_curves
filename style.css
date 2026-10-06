@@ -777,6 +777,8 @@ body.scrubbing * {
 }
 
 .log li button {
+  display: grid;
+  place-items: center;
   border: none;
   background: none;
   padding: 2px 4px;
@@ -830,10 +832,15 @@ body.scrubbing * {
 
 .hint {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 14px;
   z-index: 15;
+  white-space: nowrap;
   font-size: 12px;
+  background: rgba(28, 28, 27, 0.75);
+  padding: 3px 10px;
+  border-radius: 999px;
   color: var(--chalk-dim);
   pointer-events: none;
   text-align: right;
@@ -882,6 +889,9 @@ body.scrubbing * {
 @media (max-width: 820px) {
   .readout {
     top: 10px;
+    max-width: calc(100% - 24px);
+    white-space: normal;
+    text-align: center;
   }
 
   body {

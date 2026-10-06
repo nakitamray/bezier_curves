@@ -96,6 +96,7 @@ class Plot2D {
     this.equal = opts.equal !== false;
     this.pad = opts.pad || 0;
     this.onResize = opts.onResize;
+    this.insets = opts.insets || null; // () => {left, right, top, bottom} in px, space covered by cards
     this.view = setupCanvas(canvas, () => this.onResize && this.onResize());
     this.ctx = this.view.ctx;
     if (opts.panZoom) this.enablePanZoom(opts);
@@ -180,37 +181,42 @@ class Plot2D {
   get width() { return this.view.width; }
   get height() { return this.view.height; }
 
+  // the bounds get fitted into the part of the canvas that isn't covered by cards
   frame() {
     const { xmin, xmax, ymin, ymax } = this.bounds;
-    const w = this.width - 2 * this.pad;
-    const h = this.height - 2 * this.pad;
+    let ins = { left: 0, right: 0, top: 0, bottom: 0 };
+    if (this.insets) ins = this.insets();
+    const w = Math.max(80, this.width - ins.left - ins.right - 2 * this.pad);
+    const h = Math.max(80, this.height - ins.top - ins.bottom - 2 * this.pad);
     let sx = w / (xmax - xmin);
     let sy = h / (ymax - ymin);
     if (this.equal) sx = sy = Math.min(sx, sy);
     const cx = (xmin + xmax) / 2;
     const cy = (ymin + ymax) / 2;
-    return { sx, sy, cx, cy };
+    const ox = ins.left + this.pad + w / 2;
+    const oy = ins.top + this.pad + h / 2;
+    return { sx, sy, cx, cy, ox, oy };
   }
 
   // visible world rectangle (bigger than bounds when equal aspect)
   visible() {
     const f = this.frame();
     return {
-      xmin: f.cx - this.width / 2 / f.sx,
-      xmax: f.cx + this.width / 2 / f.sx,
-      ymin: f.cy - this.height / 2 / f.sy,
-      ymax: f.cy + this.height / 2 / f.sy
+      xmin: f.cx - f.ox / f.sx,
+      xmax: f.cx + (this.width - f.ox) / f.sx,
+      ymin: f.cy - (this.height - f.oy) / f.sy,
+      ymax: f.cy + f.oy / f.sy
     };
   }
 
   toScreen(x, y) {
     const f = this.frame();
-    return { x: this.width / 2 + (x - f.cx) * f.sx, y: this.height / 2 - (y - f.cy) * f.sy };
+    return { x: f.ox + (x - f.cx) * f.sx, y: f.oy - (y - f.cy) * f.sy };
   }
 
   toWorld(px, py) {
     const f = this.frame();
-    return { x: f.cx + (px - this.width / 2) / f.sx, y: f.cy - (py - this.height / 2) / f.sy };
+    return { x: f.cx + (px - f.ox) / f.sx, y: f.cy - (py - f.oy) / f.sy };
   }
 
   begin() {

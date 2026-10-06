@@ -14,6 +14,46 @@ function compileOrShow(src, vars, inputId, errorId) {
   }
 }
 
+// presets as a row of little buttons. returns mark(i) to show which one is on
+function chipRow(id, presets, onPick) {
+  const box = document.getElementById(id);
+  presets.forEach((p, i) => {
+    if (p.expr === null) return;
+    const b = document.createElement('button');
+    b.textContent = p.name;
+    b.dataset.i = i;
+    box.appendChild(b);
+  });
+  const mark = i => box.querySelectorAll('button').forEach(b => b.classList.toggle('active', +b.dataset.i === i));
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    mark(+b.dataset.i);
+    onPick(+b.dataset.i);
+  });
+  return mark;
+}
+
+// the big plot sits in whatever space the cards leave free
+function boardOpts(canvasId, extra) {
+  const panel = document.getElementById(canvasId).closest('[data-panel]');
+  return { equal: false, insets: () => cardInsets(panel), ...extra };
+}
+
+// slide a slider from one value to another over a couple of seconds
+function sweep(sliderObj, from, to, ms, done) {
+  const t0 = performance.now();
+  const stepFn = now => {
+    const k = Math.min(1, (now - t0) / ms);
+    const eased = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    sliderObj.value = from + (to - from) * eased;
+    sliderObj.el.dispatchEvent(new Event('input'));
+    if (k < 1) requestAnimationFrame(stepFn);
+    else if (done) done();
+  };
+  requestAnimationFrame(stepFn);
+}
+
 // ===================================================================
 // epsilon - delta
 // ===================================================================
@@ -109,8 +149,8 @@ const limitMode = (() => {
       ctx.stroke();
     }
 
-    plot.text('L + ε', v.xmax, L + eps, COLORS.yellow, 'right', 'bottom', '12px "IBM Plex Mono", monospace');
-    plot.text('L − ε', v.xmax, L - eps, COLORS.yellow, 'right', 'top', '12px "IBM Plex Mono", monospace');
+    plot.text('L + ε', plot.bounds.xmax, L + eps, COLORS.yellow, 'right', 'bottom', '12px "IBM Plex Mono", monospace');
+    plot.text('L − ε', plot.bounds.xmax, L - eps, COLORS.yellow, 'right', 'top', '12px "IBM Plex Mono", monospace');
 
     el('limitReadout').innerHTML = `ε = <b>${fmt(eps)}</b> &nbsp; δ = <b>${delta >= 3 ? 'anything' : fmt(delta, 4)}</b>`;
     return { delta, bad };
@@ -123,7 +163,7 @@ const limitMode = (() => {
       `\\lim_{x \\to a} f(x) = L \\iff \\forall\\, \\varepsilon > 0\\ \\exists\\, \\delta > 0 :\\ 0 < |x - a| < \\delta \\implies |f(x) - L| < \\varepsilon`, true);
 
     tex('limitNow',
-      `\\begin{gathered} ${hl(`\\varepsilon = ${fmt(eps)}`, E)},\\quad a = ${hl(fmt(a), A)},\\quad L = ${hl(fmt(L, 3), G)} \\\\[4pt]` +
+      `\\begin{gathered} \\varepsilon = ${hl(scrub('limitEps', fmt(eps)), E)},\\quad a = ${hl(scrub('limitA', fmt(a)), A)},\\quad L = ${hl(scrub('limitL', fmt(L, 3)), G)} \\\\[4pt]` +
       `0 < |x - ${fmt(a)}| < ${delta > 0 ? fmt(Math.min(delta, 3), 4) : '\\,?'} \\implies |f(x) - ${fmt(L, 3)}| < ${fmt(eps)} \\end{gathered}`, true);
 
     const act = actualLimit(a);
@@ -168,13 +208,17 @@ const limitMode = (() => {
   }
 
   function init() {
-    plot = new Plot2D(el('limitCanvas'), { xmin: -3, xmax: 3, ymin: -2, ymax: 2 }, { equal: false, onResize: update });
+    plot = new Plot2D(el('limitCanvas'), { xmin: -3, xmax: 3, ymin: -2, ymax: 2 }, boardOpts('limitCanvas', {
+      onResize: update,
+      probe: w => (compiled && isFinite(f(w.x)) ? `f(${fmt(w.x)}) = ${fmt(f(w.x), 3)}` : '')
+    }));
     sa = slider('limitA', () => { lastChanged = 'a'; snap(); update(); });
     se = slider('limitEps', () => { lastChanged = 'eps'; update(); });
     sl = slider('limitL', () => { lastChanged = 'L'; update(); }, 2);
-    const sel = el('limitPreset');
-    presets.forEach((p, i) => sel.add(new Option(p.name, i)));
-    sel.addEventListener('change', () => { lastChanged = null; loadPreset(+sel.value); update(); });
+    const mark = chipRow('limitChips', presets, i => { lastChanged = null; loadPreset(i); update(); });
+    const sel = { set value(i) { mark(+i); } };
+    mark(0);
+    el('limitShrink').addEventListener('click', () => { lastChanged = 'eps'; sweep(se, se.value, 0.02, 2500); });
     el('limitExpr').addEventListener('input', e => {
       sel.value = presets.length - 1;
       const c = compileOrShow(e.target.value, ['x'], 'limitExpr', 'limitError');
@@ -186,7 +230,7 @@ const limitMode = (() => {
     update();
   }
 
-  return { init };
+  return { init, update: () => update() };
 })();
 
 // ===================================================================
@@ -277,7 +321,7 @@ const seqMode = (() => {
 
     tex('seqDef',
       `\\forall\\, ${hl('\\varepsilon', E)} > 0\\ \\exists\\, N :\\ n \\ge N \\implies |a_n - L| < ${hl('\\varepsilon', E)}` +
-      (L !== null && N !== null ? `\\\\[6pt] ${hl(`\\varepsilon = ${fmt(eps, 3)}`, E)} \\;\\Rightarrow\\; N = ${N}` : ''), true);
+      (L !== null && N !== null ? `\\\\[6pt] \\varepsilon = ${hl(scrub('seqEps', fmt(eps, 3)), E)} \\;\\Rightarrow\\; N = ${N}` : ''), true);
 
     let msg;
     if (L === null) {
@@ -313,12 +357,21 @@ const seqMode = (() => {
   }
 
   function init() {
-    plot = new Plot2D(el('seqCanvas'), { xmin: 0, xmax: 60, ymin: -1, ymax: 1 }, { equal: false, onResize: update });
+    plot = new Plot2D(el('seqCanvas'), { xmin: 0, xmax: 60, ymin: -1, ymax: 1 }, boardOpts('seqCanvas', {
+      onResize: update,
+      probe: w => {
+        const n = Math.round(w.x);
+        if (!compiled || n < 1 || n > sc.value) return '';
+        const v = a(n);
+        const s = plot.toScreen(n, v), m = plot.toScreen(w.x, w.y);
+        return Math.abs(s.y - m.y) < 30 ? `a<sub>${n}</sub> = ${fmt(v, 4)}` : '';
+      }
+    }));
     se = slider('seqEps', () => { lastChanged = 'eps'; update(); }, 3);
     sc = slider('seqCount', update, 0);
-    const sel = el('seqPreset');
-    presets.forEach((p, i) => sel.add(new Option(p.name, i)));
-    sel.addEventListener('change', () => { lastChanged = null; loadPreset(+sel.value); update(); });
+    const mark = chipRow('seqChips', presets, i => { lastChanged = null; loadPreset(i); update(); });
+    const sel = { set value(i) { mark(+i); } };
+    mark(0);
     el('seqExpr').addEventListener('input', e => {
       sel.value = presets.length - 1;
       const c = compileOrShow(e.target.value, ['n'], 'seqExpr', 'seqError');
@@ -328,7 +381,7 @@ const seqMode = (() => {
     update();
   }
 
-  return { init };
+  return { init, update: () => update() };
 })();
 
 // ===================================================================
@@ -395,7 +448,7 @@ const riemannMode = (() => {
     plot.bounds = { xmin: a - padX, xmax: b + padX, ymin: lo - padY, ymax: hi + padY };
 
     plot.begin();
-    plot.grid({ labelEvery: 1, step: niceStep((b - a + 2 * padX) / 8), ystep: niceStep((hi - lo + 2 * padY) / 6) });
+    plot.grid({ labelEvery: 2, step: niceStep((b - a + 2 * padX) / 8), ystep: niceStep((hi - lo + 2 * padY) / 6) });
     const type = sumType();
     const thin = S.p.length > 60;
     const edge = thin ? null : 'rgba(29, 29, 29, 0.8)';
@@ -442,7 +495,7 @@ const riemannMode = (() => {
     const type = sumType();
     if (type === 'darboux') {
       tex('riemannDef',
-        `\\underbrace{\\sum_{i=1}^{${hl(n, N)}} m_i\\,\\Delta x}_{L = ${fmt(S.L, 4)}} \\;\\le\\; \\int_{${fmt(a)}}^{${fmt(b)}} f(x)\\,dx \\;\\le\\; \\underbrace{\\sum_{i=1}^{${hl(n, N)}} M_i\\,\\Delta x}_{U = ${fmt(S.U, 4)}}`, true);
+        `\\underbrace{\\sum_{i=1}^{${hl(scrub('riemannN', n), N)}} m_i\\,\\Delta x}_{L = ${fmt(S.L, 4)}} \\;\\le\\; \\int_{${fmt(a)}}^{${fmt(b)}} f(x)\\,dx \\;\\le\\; \\underbrace{\\sum_{i=1}^{${hl(n, N)}} M_i\\,\\Delta x}_{U = ${fmt(S.U, 4)}}`, true);
       el('riemannStats').innerHTML =
         `<div><span>lower L</span><b>${fmt(S.L, 4)}</b></div>` +
         `<div><span>integral</span><b>${fmt(I, 4)}</b></div>` +
@@ -451,7 +504,7 @@ const riemannMode = (() => {
     } else {
       const point = { left: 'x_{i-1}', right: 'x_i', mid: '\\tfrac{x_{i-1} + x_i}{2}' }[type];
       tex('riemannDef',
-        `\\sum_{i=1}^{${hl(n, N)}} f\\!\\left(${point}\\right)\\Delta x = ${fmt(S[type], 4)} \\;\\approx\\; \\int_{${fmt(a)}}^{${fmt(b)}} f(x)\\,dx = ${fmt(I, 4)}`, true);
+        `\\sum_{i=1}^{${hl(scrub('riemannN', n), N)}} f\\!\\left(${point}\\right)\\Delta x = ${fmt(S[type], 4)} \\;\\approx\\; \\int_{${fmt(a)}}^{${fmt(b)}} f(x)\\,dx = ${fmt(I, 4)}`, true);
       el('riemannStats').innerHTML =
         `<div><span>${type} sum</span><b>${fmt(S[type], 4)}</b></div>` +
         `<div><span>integral</span><b>${fmt(I, 4)}</b></div>` +
@@ -478,14 +531,18 @@ const riemannMode = (() => {
   }
 
   function init() {
-    plot = new Plot2D(el('riemannCanvas'), { xmin: -1, xmax: 3, ymin: -1, ymax: 4 }, { equal: false, onResize: update });
+    plot = new Plot2D(el('riemannCanvas'), { xmin: -1, xmax: 3, ymin: -1, ymax: 4 }, boardOpts('riemannCanvas', {
+      onResize: update,
+      probe: w => (compiled && isFinite(f(w.x)) ? `f(${fmt(w.x)}) = ${fmt(f(w.x), 3)}` : '')
+    }));
     gap = new Plot2D(el('gapCanvas'), { xmin: 0, xmax: 100, ymin: 0, ymax: 1 }, { equal: false, onResize: update });
     sn = slider('riemannN', () => { lastChanged = 'n'; update(); }, 0);
     sa = slider('riemannA', () => { lastChanged = 'a'; update(); });
     sb = slider('riemannB', () => { lastChanged = 'b'; update(); });
-    const sel = el('riemannPreset');
-    presets.forEach((p, i) => sel.add(new Option(p.name, i)));
-    sel.addEventListener('change', () => { loadPreset(+sel.value); update(); });
+    const mark = chipRow('riemannChips', presets, i => { loadPreset(i); update(); });
+    const sel = { set value(i) { mark(+i); } };
+    mark(0);
+    el('riemannPlay').addEventListener('click', () => { lastChanged = 'n'; sweep(sn, 1, 60, 3500); });
     el('riemannExpr').addEventListener('input', e => {
       sel.value = presets.length - 1;
       const c = compileOrShow(e.target.value, ['x'], 'riemannExpr', 'riemannError');
@@ -496,7 +553,7 @@ const riemannMode = (() => {
     update();
   }
 
-  return { init };
+  return { init, update: () => update() };
 })();
 
 // ===================================================================
@@ -612,7 +669,7 @@ const uniformMode = (() => {
     tex('uniformDefs',
       `\\begin{aligned} &\\text{pointwise:} && ${hl('\\forall x')}\\ \\forall \\varepsilon > 0\\ \\exists N:\\ n \\ge N \\Rightarrow |f_n(x) - f(x)| < \\varepsilon \\\\ ` +
       `&\\text{uniform:} && \\forall \\varepsilon > 0\\ \\exists N:\\ n \\ge N \\Rightarrow |f_n(x) - f(x)| < \\varepsilon\\ ${hl('\\forall x')} \\end{aligned}`, true);
-    tex('uniformSup', `\\lVert f_{${n}} - f \\rVert_\\infty = \\sup_x |f_{${n}}(x) - f(x)| = ${fmt(s.value, 4)} ${s.value < eps ? '<' : '\\ge'} \\varepsilon = ${fmt(eps)}`, true);
+    tex('uniformSup', `n = ${scrub('uniformN', n)}:\\quad \\lVert f_{${n}} - f \\rVert_\\infty = \\sup_x |f_{${n}}(x) - f(x)| = ${fmt(s.value, 4)} ${s.value < eps ? '<' : '\\ge'} \\varepsilon = ${scrub('uniformEps', fmt(eps))}`, true);
 
     const far = supNorm(2000).value;
     let msg;
@@ -636,27 +693,35 @@ const uniformMode = (() => {
   }
 
   function init() {
-    plot = new Plot2D(el('uniformCanvas'), { xmin: 0, xmax: 1, ymin: 0, ymax: 1 }, { equal: false, onResize: update });
+    plot = new Plot2D(el('uniformCanvas'), { xmin: 0, xmax: 1, ymin: 0, ymax: 1 }, boardOpts('uniformCanvas', {
+      onResize: update,
+      probe: w => (fnc ? `f<sub>${sn.value}</sub>(${fmt(w.x)}) = ${fmt(fn(w.x, sn.value), 3)}` : '')
+    }));
     sup = new Plot2D(el('supCanvas'), { xmin: 0, xmax: 60, ymin: 0, ymax: 1 }, { equal: false, onResize: update });
     sn = slider('uniformN', update, 0);
     se = slider('uniformEps', update);
-    const sel = el('uniformPreset');
-    presets.forEach((p, i) => sel.add(new Option(p.name, i)));
     const load = i => { preset = presets[i]; fnc = compileExpr(preset.fn, ['x', 'n']); };
-    sel.addEventListener('change', () => { load(+sel.value); update(); });
+    const mark = chipRow('uniformChips', presets.map(p => ({ ...p, expr: p.fn })), i => { load(i); update(); });
+    mark(0);
+    el('uniformPlay').addEventListener('click', () => sweep(sn, 1, 60, 4000));
     ['uniformTrail', 'uniformTube'].forEach(id => el(id).addEventListener('change', update));
     load(0);
     update();
   }
 
-  return { init };
+  return { init, update: () => update() };
 })();
 
 // ===================================================================
 
 const started = {};
 const modes = { limits: limitMode, sequences: seqMode, riemann: riemannMode, uniform: uniformMode };
+let currentMode = null;
+window.addEventListener('cardsmoved', () => {
+  if (currentMode && started[currentMode]) modes[currentMode].update();
+});
 modeTabs('modes', key => {
+  currentMode = key;
   if (!started[key]) {
     started[key] = true;
     requestAnimationFrame(() => modes[key].init());

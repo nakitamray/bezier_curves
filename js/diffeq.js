@@ -236,6 +236,167 @@ const typeNotes = {
   'nodal source': 'Two positive eigenvalues. Everything flows away from the origin.'
 };
 
+
+// ===================================================================
+// the log: every equation you try gets kept
+// ===================================================================
+
+const LOG_COLORS = ['#e9c46a', '#8fb7d9', '#d98a7a', '#9fc79a', '#c3a3d9', '#d9b38c', '#e6e6e6'];
+const EYE_ON = '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="7" cy="7" r="3" fill="currentColor"/></svg>';
+const EYE_OFF = '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+
+class EquationLog {
+  // texOf(data) -> latex. onPick(entry) restores it. onChange() redraws overlays
+  constructor(name, listId, clearId, opts) {
+    this.key = 'log:' + name;
+    this.list = document.getElementById(listId);
+    this.opts = opts;
+    this.entries = store(this.key) || [];
+    this.current = null;
+    this.timer = null;
+    this.colorIndex = this.entries.length;
+
+    document.getElementById(clearId).addEventListener('click', () => {
+      this.entries = this.entries.filter(e => e.id === this.current);
+      this.save();
+      this.render();
+      opts.onChange();
+    });
+
+    this.list.addEventListener('click', e => {
+      const li = e.target.closest('li[data-id]');
+      if (!li) return;
+      const entry = this.entries.find(x => x.id === li.dataset.id);
+      const act = e.target.closest('button') && e.target.closest('button').dataset.act;
+      if (act === 'show') {
+        entry.show = !entry.show;
+      } else if (act === 'del') {
+        this.entries = this.entries.filter(x => x !== entry);
+        if (this.current === entry.id) this.current = null;
+      } else {
+        this.current = entry.id;
+        opts.onPick(entry);
+      }
+      this.save();
+      this.render();
+      opts.onChange();
+    });
+  }
+
+  get currentEntry() {
+    return this.entries.find(e => e.id === this.current) || null;
+  }
+
+  // logs a new equation, or jumps to it if it's already there
+  add(data, force = false) {
+    const key = this.opts.keyOf(data);
+    let entry = force ? null : this.entries.find(e => this.opts.keyOf(e.data) === key);
+    if (!entry) {
+      entry = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        data: JSON.parse(JSON.stringify(data)),
+        color: LOG_COLORS[this.colorIndex++ % LOG_COLORS.length],
+        show: false
+      };
+      this.entries.unshift(entry);
+      // keep it from growing forever
+      while (this.entries.length > 40) this.entries.pop();
+    } else {
+      entry.data = JSON.parse(JSON.stringify(data));
+    }
+    // the one you just left stays drawn underneath so you can compare, the rest step back
+    const old = this.currentEntry;
+    this.entries.forEach(e => (e.show = false));
+    if (old && old !== entry) old.show = true;
+    this.current = entry.id;
+    this.save();
+    this.render();
+    return entry;
+  }
+
+  // parameters changed: keep the current entry up to date (a little later, not on every frame)
+  update(data) {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      const entry = this.currentEntry;
+      if (!entry) return this.add(data);
+      entry.data = JSON.parse(JSON.stringify(data));
+      this.save();
+      this.render();
+    }, 350);
+  }
+
+  overlays() {
+    return this.entries.filter(e => e.show && e.id !== this.current);
+  }
+
+  // solution curves for an older entry, worked out once and reused until something changes
+  curvesFor(entry, plot, makeF) {
+    this.cache = this.cache || {};
+    const key = JSON.stringify(entry.data) + JSON.stringify(plot.bounds);
+    const hit = this.cache[entry.id];
+    if (hit && hit.key === key) return hit.curves;
+    let curves = [];
+    try {
+      const G = makeF(entry.data);
+      curves = (entry.data.starts || []).map(p => trajectory(G, p, plot.visible(), 0.01, 3000));
+    } catch (e) { /* an entry that doesn't parse any more, just skip it */ }
+    this.cache[entry.id] = { key, curves };
+    return curves;
+  }
+
+  save() {
+    store(this.key, this.entries);
+  }
+
+  render() {
+    if (!this.entries.length) {
+      this.list.innerHTML = '<li class="log-empty" style="display:block;cursor:default">nothing yet</li>';
+      return;
+    }
+    this.list.innerHTML = this.entries.map(e => `
+      <li data-id="${e.id}" class="${e.id === this.current ? 'current' : ''}${e.show || e.id === this.current ? '' : ' hidden-overlay'}">
+        <span class="swatch" style="background:${e.color}"></span>
+        <span class="tex"></span>
+        <button data-act="show" title="draw it underneath">${e.show || e.id === this.current ? EYE_ON : EYE_OFF}</button>
+        <button data-act="del" title="remove">×</button>
+      </li>`).join('');
+    this.list.querySelectorAll('li[data-id]').forEach(li => {
+      const e = this.entries.find(x => x.id === li.dataset.id);
+      try {
+        tex(li.querySelector('.tex'), this.opts.texOf(e.data));
+      } catch (err) {
+        li.querySelector('.tex').textContent = '?';
+      }
+    });
+  }
+}
+
+// translucent version of a hex color
+function fade(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
+
+function chipRow(id, presets, onPick) {
+  const box = document.getElementById(id);
+  presets.forEach((p, i) => {
+    if (p.hidden) return;
+    const b = document.createElement('button');
+    b.textContent = p.name;
+    b.dataset.i = i;
+    box.appendChild(b);
+  });
+  const mark = i => box.querySelectorAll('button').forEach(b => b.classList.toggle('active', +b.dataset.i === i));
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    mark(+b.dataset.i);
+    onPick(+b.dataset.i);
+  });
+  return mark;
+}
+
 // ===================================================================
 // slope fields
 // ===================================================================
@@ -243,35 +404,43 @@ const typeNotes = {
 const slopeMode = (() => {
   const el = id => document.getElementById(id);
   const presets = [
-    { name: 'Linear', expr: 'a*x - b*y', a: 1, b: 1 },
-    { name: 'Exponential growth', expr: 'a*y', a: 0.6, b: 0 },
-    { name: 'Logistic', expr: 'a*y*(1 - y/b)', a: 1, b: 2.5 },
-    { name: 'Forced', expr: 'sin(a*x) - b*y', a: 1.5, b: 0.5 },
-    { name: 'Blow-up', expr: 'a*y^2 - b*x', a: 0.5, b: 0.5 },
-    { name: 'Custom', expr: null }
+    { name: 'linear', expr: 'a*x - b*y', a: 1, b: 1 },
+    { name: 'growth', expr: 'a*y', a: 0.6, b: 0 },
+    { name: 'logistic', expr: 'a*y*(1 - y/b)', a: 1, b: 2.5 },
+    { name: 'forced', expr: 'sin(a*x) - b*y', a: 1.5, b: 0.5 },
+    { name: 'blow-up', expr: 'a*y^2 - b*x', a: 0.5, b: 0.5 },
+    { name: 'ripples', expr: 'cos(a*x*y) - b*x', a: 0.8, b: 0.2 }
   ];
 
-  let plot, sa, sb, sh;
+  let plot, sa, sb, sh, log, mark;
   let compiled = null;
   let starts = [{ x: -3, y: 1 }];
   let lastChanged = null;
   let curves = [];
-  const particles = new Particles(110);
+  const particles = new Particles(120);
 
   const f = (x, y) => compiled.fn({ x, y, a: sa.value, b: sb.value });
   const F = (x, y) => [1, f(x, y)];
+  const data = () => ({ expr: el('slopeExpr').value, a: sa.value, b: sb.value, starts });
 
   function setExpr(src) {
+    const c = compileOr(src);
+    if (!c) return false;
+    compiled = c;
+    return true;
+  }
+
+  function compileOr(src) {
     try {
-      compiled = compileExpr(src, ['x', 'y', 'a', 'b']);
-      if (typeof f(0.2, 0.3) !== 'number') throw new Error('not a number');
+      const c = compileExpr(src, ['x', 'y', 'a', 'b']);
+      if (typeof c.fn({ x: 0.2, y: 0.3, a: 1, b: 1 }) !== 'number') throw new Error('not a number');
       el('slopeExpr').classList.remove('bad');
       el('slopeError').textContent = '';
-      return true;
+      return c;
     } catch (e) {
       el('slopeExpr').classList.add('bad');
       el('slopeError').textContent = e.message;
-      return false;
+      return null;
     }
   }
 
@@ -294,51 +463,55 @@ const slopeMode = (() => {
 
   function solveCurves() {
     const v = plot.visible();
-    curves = starts.map(s => trajectory(F, s, v, 0.01, 2000));
+    curves = starts.map(s => trajectory(F, s, v, 0.01, 3000));
   }
 
   function draw() {
     plot.begin();
     plot.grid();
-    const v = plot.visible();
 
     if (el('slopeNull').checked) {
       for (const [a, b] of zeroSet(plot, f)) plot.line(a.x, a.y, b.x, b.y, COLORS.yellow, 1.5, [4, 3]);
     }
-    if (el('slopeField').checked) drawField(plot, F, { slope: true, spacing: 26 });
+    if (el('slopeField').checked) drawField(plot, F, { slope: true, spacing: 28 });
     if (el('slopeFlow').checked) particles.draw(plot);
 
-    curves.forEach((c, i) => plot.path(c, i === curves.length - 1 ? COLORS.white : 'rgba(250, 250, 250, 0.45)', 2));
+    for (const entry of log.overlays()) {
+      log.curvesFor(entry, plot, d => {
+        const c = compileExpr(d.expr, ['x', 'y', 'a', 'b']);
+        return (x, y) => [1, c.fn({ x, y, a: d.a, b: d.b })];
+      }).forEach(c => plot.path(c, fade(entry.color, 0.75), 2, [7, 4]));
+    }
+
+    curves.forEach((c, i) => plot.path(c, i === curves.length - 1 ? COLORS.white : 'rgba(250, 250, 250, 0.5)', 2.5));
 
     if (el('slopeEuler').checked) {
       const { pts } = euler();
       plot.path(pts, COLORS.yellow, 2);
       pts.forEach(p => plot.dot(p.x, p.y, 3, COLORS.yellow));
     }
-    starts.forEach((s, i) => plot.dot(s.x, s.y, i === starts.length - 1 ? 5 : 3.5, COLORS.bg, COLORS.white));
+    starts.forEach((s, i) => plot.dot(s.x, s.y, i === starts.length - 1 ? 6 : 4, COLORS.bg, COLORS.white, 2));
   }
 
   function equations() {
     const a = sa.value, b = sb.value;
     const s = starts[starts.length - 1];
-    const ic = lastChanged === 'start';
     tex('slopeFormula',
-      `\\frac{dy}{dx} = ${toTex(compiled.tree, { a, b }, lastChanged)}, \\qquad ${hl(`y(${fmt(s.x)}) = ${fmt(s.y)}`, ic)}`, true);
+      `\\frac{dy}{dx} = ${toTex(compiled.tree, { a, b }, lastChanged, { a: 'slopeA', b: 'slopeB' })}`, true);
 
     const h = sh.value;
     const hh = lastChanged === 'h';
-    tex('eulerFormula', `y_{n+1} = y_n + ${hl('h', hh)}\\,f(x_n, y_n), \\qquad ${hl(`h = ${fmt(h)}`, hh)}`, true);
+    tex('eulerFormula',
+      `y_{n+1} = y_n + ${hl('h', hh)}\\,f(x_n, y_n), \\quad h = ${hl(scrub('slopeH', fmt(h)), hh)}, \\quad ${hl(`y(${fmt(s.x)}) = ${fmt(s.y)}`, lastChanged === 'start')}`, true);
 
     const { pts, target } = euler();
-    let rows = '<tr><th>n</th><th style="text-align:right">x<sub>n</sub></th><th style="text-align:right">y<sub>n</sub></th><th style="text-align:right">f(x<sub>n</sub>, y<sub>n</sub>)</th><th style="text-align:right">y<sub>n+1</sub></th></tr>';
+    let rows = '<tr><th>n</th><th style="text-align:right">x<sub>n</sub></th><th style="text-align:right">y<sub>n</sub></th><th style="text-align:right">slope</th><th style="text-align:right">y<sub>n+1</sub></th></tr>';
     for (let n = 0; n < Math.min(5, pts.length - 1); n++) {
       const p = pts[n];
       rows += `<tr class="row"><td>${n}</td><td class="n">${fmt(p.x)}</td><td class="n">${fmt(p.y, 3)}</td><td class="n">${fmt(f(p.x, p.y), 3)}</td><td class="n">${fmt(pts[n + 1].y, 3)}</td></tr>`;
     }
-    if (pts.length > 6) rows += `<tr class="row"><td>…</td><td class="n"></td><td class="n"></td><td class="n"></td><td class="n"></td></tr>`;
     el('eulerTable').innerHTML = rows;
 
-    // accurate value with a tiny rk4 step
     let x = s.x, y = s.y;
     const steps = 600;
     const dx = (target - s.x) / steps;
@@ -348,12 +521,12 @@ const slopeMode = (() => {
     }
     const ye = pts[pts.length - 1].y;
     el('eulerStats').innerHTML =
-      `<div><span>steps to x = ${fmt(target)}</span><b>${pts.length - 1}</b></div>` +
-      `<div><span>Euler</span><b>${fmt(ye, 3)}</b></div>` +
+      `<div><span>steps</span><b>${pts.length - 1}</b></div>` +
+      `<div><span>Euler at ${fmt(target, 1)}</span><b>${fmt(ye, 3)}</b></div>` +
       `<div><span>true value</span><b>${fmt(y, 3)}</b></div>` +
       `<div><span>error</span><b>${fmt(Math.abs(ye - y), 3)}</b></div>`;
 
-    el('slopeReadout').innerHTML = `start (<b>${fmt(s.x)}</b>, <b>${fmt(s.y)}</b>)`;
+    el('slopeReadout').innerHTML = `y′ = ${el('slopeExpr').value} &nbsp; start (<b>${fmt(s.x)}</b>, <b>${fmt(s.y)}</b>)`;
   }
 
   function update() {
@@ -363,42 +536,96 @@ const slopeMode = (() => {
     draw();
   }
 
-  function loadPreset(i) {
-    const p = presets[i];
-    if (!p.expr) return;
-    el('slopeExpr').value = p.expr;
-    sa.value = p.a;
-    sb.value = p.b;
-    setExpr(p.expr);
+  function restore(entry) {
+    const d = entry.data;
+    el('slopeExpr').value = d.expr;
+    sa.value = d.a;
+    sb.value = d.b;
+    starts = d.starts.length ? d.starts.map(p => ({ ...p })) : [{ x: -3, y: 1 }];
+    setExpr(d.expr);
+    mark(presets.findIndex(p => p.expr === d.expr));
+    lastChanged = null;
+    update();
+  }
+
+  function commitTyped() {
+    const src = el('slopeExpr').value;
+    const cur = log.currentEntry;
+    if (compiled && (!cur || cur.data.expr !== src)) {
+      log.add(data());
+      toast('added to the log');
+      draw();
+    }
   }
 
   function init() {
-    plot = new Plot2D(el('slopeCanvas'), { xmin: -5, xmax: 5, ymin: -4, ymax: 4 }, { onResize: () => { solveCurves(); draw(); } });
-    const changed = k => () => { lastChanged = k; update(); };
+    plot = new Plot2D(el('slopeCanvas'), { xmin: -9, xmax: 9, ymin: -6, ymax: 6 }, {
+      onResize: () => { solveCurves(); draw(); },
+      panZoom: true,
+      onView: () => { solveCurves(); draw(); },
+      onViewEnd: () => update(),
+      probe: w => compiled ? `slope ${fmt(f(w.x, w.y))}` : ''
+    });
+    const changed = k => () => { lastChanged = k; update(); log.update(data()); };
     sa = slider('slopeA', changed('a'));
     sb = slider('slopeB', changed('b'));
-    sh = slider('slopeH', changed('h'));
+    sh = slider('slopeH', () => { lastChanged = 'h'; equations(); draw(); });
 
-    const sel = el('slopePreset');
-    presets.forEach((p, i) => sel.add(new Option(p.name, i)));
-    sel.addEventListener('change', () => { lastChanged = null; loadPreset(+sel.value); update(); });
+    log = new EquationLog('slope', 'slopeLog', 'slopeLogClear', {
+      keyOf: d => d.expr,
+      texOf: d => {
+        const c = compileExpr(d.expr, ['x', 'y', 'a', 'b']);
+        return `y' = ${toTex(c.tree, { a: d.a, b: d.b })}`;
+      },
+      onPick: restore,
+      onChange: draw
+    });
+
+    mark = chipRow('slopeChips', presets, i => {
+      const p = presets[i];
+      el('slopeExpr').value = p.expr;
+      sa.value = p.a;
+      sb.value = p.b;
+      setExpr(p.expr);
+      lastChanged = null;
+      update();
+      log.add(data());
+    });
+
     el('slopeExpr').addEventListener('input', e => {
-      sel.value = presets.length - 1;
+      mark(-1);
       if (setExpr(e.target.value)) update();
     });
+    el('slopeExpr').addEventListener('keydown', e => { if (e.key === 'Enter') commitTyped(); });
+    el('slopeExpr').addEventListener('blur', commitTyped);
+
     ['slopeField', 'slopeEuler', 'slopeNull', 'slopeFlow'].forEach(id => el(id).addEventListener('change', draw));
-    el('slopeClear').addEventListener('click', () => { starts = [starts[starts.length - 1]]; update(); });
+    el('slopeClear').addEventListener('click', () => { starts = [starts[starts.length - 1]]; update(); log.update(data()); });
 
     el('slopeCanvas').addEventListener('click', e => {
+      if (plot.wasDrag()) return;
       const p = pointerPos(el('slopeCanvas'), e);
       starts.push(plot.toWorld(p.x, p.y));
       if (starts.length > 8) starts.shift();
       lastChanged = 'start';
       update();
+      log.update(data());
     });
 
-    loadPreset(0);
-    update();
+    const cur = log.entries[0];
+    if (cur) {
+      log.current = cur.id;
+      restore(cur);
+    } else {
+      mark(0);
+      el('slopeExpr').value = presets[0].expr;
+      sa.value = presets[0].a;
+      sb.value = presets[0].b;
+      setExpr(presets[0].expr);
+      update();
+      log.add(data());
+    }
+    log.render();
   }
 
   function frame() {
@@ -417,17 +644,17 @@ const slopeMode = (() => {
 const linearMode = (() => {
   const el = id => document.getElementById(id);
   const presets = [
-    { name: 'Saddle', m: [1, 1, 2, -1] },
-    { name: 'Spiral sink', m: [-0.5, -2, 2, -0.5] },
-    { name: 'Spiral source', m: [0.3, -1.5, 1.5, 0.3] },
-    { name: 'Center', m: [0, 1, -2, 0] },
-    { name: 'Nodal sink', m: [-2, 1, 0.5, -1.5] },
-    { name: 'Nodal source', m: [1.5, 0.5, 0.25, 1] },
-    { name: 'Star', m: [-1, 0, 0, -1] },
-    { name: 'Degenerate node', m: [-1, 1, 0, -1] }
+    { name: 'saddle', m: [1, 1, 2, -1] },
+    { name: 'spiral sink', m: [-0.5, -2, 2, -0.5] },
+    { name: 'spiral source', m: [0.3, -1.5, 1.5, 0.3] },
+    { name: 'center', m: [0, 1, -2, 0] },
+    { name: 'nodal sink', m: [-2, 1, 0.5, -1.5] },
+    { name: 'nodal source', m: [1.5, 0.5, 0.25, 1] },
+    { name: 'star', m: [-1, 0, 0, -1] },
+    { name: 'degenerate', m: [-1, 1, 0, -1] }
   ];
 
-  let plot, trace;
+  let plot, trace, log, mark;
   const s = {};
   let starts = [{ x: 2.5, y: 1 }, { x: -2, y: 2.5 }, { x: -1, y: -3 }, { x: 3, y: -2.5 }];
   let curves = [];
@@ -439,14 +666,27 @@ const linearMode = (() => {
     const [a, b, c, d] = A();
     return [a * x + b * y, c * x + d * y];
   };
+  const data = () => ({ m: A(), starts });
+  const matTex = (m, live) => {
+    const names = ['a', 'b', 'c', 'd'];
+    const cell = i => live ? hl(scrub('mat' + names[i].toUpperCase(), fmt(m[i])), lastChanged === names[i]) : fmt(m[i], 1);
+    return `\\begin{bmatrix} ${cell(0)} & ${cell(1)} \\\\ ${cell(2)} & ${cell(3)} \\end{bmatrix}`;
+  };
 
   function draw() {
     plot.begin();
     plot.grid();
     const info = analyze2x2(...A());
 
-    if (el('linearField').checked) drawField(plot, F, { spacing: 32 });
+    if (el('linearField').checked) drawField(plot, F, { spacing: 34 });
     if (el('linearFlow').checked) particles.draw(plot);
+
+    for (const entry of log.overlays()) {
+      log.curvesFor(entry, plot, d => {
+        const [a, b, c, e] = d.m;
+        return (x, y) => [a * x + b * y, c * x + e * y];
+      }).forEach(c => plot.path(c, fade(entry.color, 0.75), 2, [7, 4]));
+    }
 
     if (el('linearEigen').checked && info.real) {
       const v = plot.visible();
@@ -454,21 +694,19 @@ const linearMode = (() => {
       const vecs = info.repeated ? [[info.v1, info.l1]] : [[info.v1, info.l1], [info.v2, info.l2]];
       for (const [vec, l] of vecs) {
         plot.line(-vec.x * R, -vec.y * R, vec.x * R, vec.y * R, 'rgba(233, 196, 106, 0.7)', 1.5, [6, 4]);
-        const at = { x: vec.x * 3.2, y: vec.y * 3.2 };
-        plot.text(`λ = ${fmt(l)}`, at.x, at.y, COLORS.yellow, 'left', 'bottom');
+        plot.text(`λ = ${fmt(l)}`, vec.x * 3.4, vec.y * 3.4, COLORS.yellow, 'left', 'bottom', '600 13px "IBM Plex Sans", sans-serif');
       }
     }
 
-    curves.forEach(c => plot.path(c, COLORS.white, 1.8));
-    starts.forEach(p => plot.dot(p.x, p.y, 3.5, COLORS.bg, COLORS.white));
-    plot.dot(0, 0, 4, info.stable ? COLORS.yellow : COLORS.bg, COLORS.yellow);
+    curves.forEach(c => plot.path(c, COLORS.white, 2));
+    starts.forEach(p => plot.dot(p.x, p.y, 4, COLORS.bg, COLORS.white));
+    plot.dot(0, 0, 5, info.stable ? COLORS.yellow : COLORS.bg, COLORS.yellow);
   }
 
   function drawTrace() {
     const info = analyze2x2(...A());
     trace.begin();
     trace.grid({ labels: false, step: 1, ystep: 1 });
-    const ctx = trace.ctx;
     trace.graph(t => (t * t) / 4, COLORS.creamDim, 1.5);
     const label = (str, x, y) => trace.text(str, x, y, COLORS.muted, 'center', 'middle', '11px "IBM Plex Sans", sans-serif');
     label('saddles', 0, -1.8);
@@ -477,40 +715,38 @@ const linearMode = (() => {
     label('nodal sinks', -4.6, 1.8);
     label('nodal sources', 4.6, 1.8);
     label('centers ↑', 0.55, 7.6);
-    trace.text('τ = trace', trace.visible().xmax - 0.2, 0.15, COLORS.muted, 'right', 'bottom', '11px "IBM Plex Sans", sans-serif');
-    trace.text('Δ = det', 0.15, trace.visible().ymax - 0.3, COLORS.muted, 'left', 'top', '11px "IBM Plex Sans", sans-serif');
+    for (const entry of log.overlays()) {
+      const [a, b, c, d] = entry.data.m;
+      trace.dot(clamp(a + d, -5.8, 5.8), clamp(a * d - b * c, -2.8, 8.8), 4, entry.color);
+    }
     const t = clamp(info.tr, -5.8, 5.8), d = clamp(info.det, -2.8, 8.8);
-    trace.dot(t, d, 9, COLORS.yellowDim);
+    trace.dot(t, d, 10, COLORS.yellowDim);
     trace.dot(t, d, 5, COLORS.yellow, COLORS.bg);
-    ctx.setLineDash([]);
   }
 
   function equations() {
     const [a, b, c, d] = A();
     const info = analyze2x2(a, b, c, d);
-    const L = lastChanged;
-    tex('linearFormula',
-      `\\begin{bmatrix} x' \\\\ y' \\end{bmatrix} = \\begin{bmatrix} ${hl(fmt(a), L === 'a')} & ${hl(fmt(b), L === 'b')} \\\\ ${hl(fmt(c), L === 'c')} & ${hl(fmt(d), L === 'd')} \\end{bmatrix} \\begin{bmatrix} x \\\\ y \\end{bmatrix}`, true);
+    tex('linearFormula', `\\begin{bmatrix} x' \\\\ y' \\end{bmatrix} = ${matTex([a, b, c, d], true)} \\begin{bmatrix} x \\\\ y \\end{bmatrix}`, true);
 
     tex('linearChar',
-      `\\begin{gathered} \\det(A - \\lambda I) = \\lambda^2 - \\tau\\lambda + \\Delta = 0 \\\\[4pt] \\tau = a + d = ${fmt(info.tr)}, \\qquad \\Delta = ad - bc = ${fmt(info.det)} \\end{gathered}`, true);
+      `\\det(A - \\lambda I) = \\lambda^2 - \\tau\\lambda + \\Delta = 0, \\quad \\tau = ${fmt(info.tr)},\\ \\Delta = ${fmt(info.det)}`, true);
 
     let eig, sol;
     if (!info.real) {
-      eig = `\\lambda = \\frac{\\tau \\pm \\sqrt{\\tau^2 - 4\\Delta}}{2} = ${fmt(info.alpha)} \\pm ${fmt(info.beta)}\\,i`;
+      eig = `\\lambda = \\tfrac{\\tau \\pm \\sqrt{\\tau^2 - 4\\Delta}}{2} = ${fmt(info.alpha)} \\pm ${fmt(info.beta)}\\,i`;
       sol = `\\mathbf x(t) = e^{${fmt(info.alpha)}t}\\left(c_1 \\cos(${fmt(info.beta)}t)\\,\\mathbf u + c_2 \\sin(${fmt(info.beta)}t)\\,\\mathbf w\\right)`;
     } else if (info.repeated) {
-      eig = `\\lambda_1 = \\lambda_2 = ${fmt(info.l1)}, \\qquad \\mathbf v = (${fmt(info.v1.x)}, ${fmt(info.v1.y)})`;
+      eig = `\\lambda_1 = \\lambda_2 = ${fmt(info.l1)}, \\quad \\mathbf v = (${fmt(info.v1.x)}, ${fmt(info.v1.y)})`;
       sol = `\\mathbf x(t) = c_1 e^{${fmt(info.l1)}t}\\mathbf v + c_2 e^{${fmt(info.l1)}t}(t\\,\\mathbf v + \\mathbf w)`;
     } else {
-      eig = `\\lambda_1 = ${fmt(info.l1)},\\ \\mathbf v_1 = (${fmt(info.v1.x)}, ${fmt(info.v1.y)}) \\qquad \\lambda_2 = ${fmt(info.l2)},\\ \\mathbf v_2 = (${fmt(info.v2.x)}, ${fmt(info.v2.y)})`;
+      eig = `\\lambda_1 = ${fmt(info.l1)},\\ \\mathbf v_1 = (${fmt(info.v1.x)}, ${fmt(info.v1.y)}) \\quad \\lambda_2 = ${fmt(info.l2)},\\ \\mathbf v_2 = (${fmt(info.v2.x)}, ${fmt(info.v2.y)})`;
       sol = `\\mathbf x(t) = c_1 e^{${fmt(info.l1)}t}\\,\\mathbf v_1 + c_2 e^{${fmt(info.l2)}t}\\,\\mathbf v_2`;
     }
     tex('linearEigenvalues', eig, true);
     tex('linearSolution', sol, true);
 
-    const note = typeNotes[info.type] || '';
-    el('linearType').innerHTML = `<strong>${info.type[0].toUpperCase() + info.type.slice(1)}.</strong> ${note}`;
+    el('linearType').innerHTML = `<strong>${info.type[0].toUpperCase() + info.type.slice(1)}.</strong> ${typeNotes[info.type] || ''}`;
     el('linearReadout').innerHTML = `τ = <b>${fmt(info.tr)}</b> &nbsp; Δ = <b>${fmt(info.det)}</b> &nbsp; ${info.type}`;
   }
 
@@ -527,45 +763,87 @@ const linearMode = (() => {
   }
 
   function init() {
-    plot = new Plot2D(el('linearCanvas'), { xmin: -4, xmax: 4, ymin: -3.5, ymax: 3.5 }, { onResize: draw });
+    plot = new Plot2D(el('linearCanvas'), { xmin: -6, xmax: 6, ymin: -4.5, ymax: 4.5 }, {
+      onResize: draw,
+      panZoom: true,
+      onView: draw,
+      onViewEnd: update,
+      probe: w => {
+        const [dx, dy] = F(w.x, w.y);
+        return `(x′, y′) = (${fmt(dx)}, ${fmt(dy)})`;
+      }
+    });
     trace = new Plot2D(el('traceCanvas'), { xmin: -6, xmax: 6, ymin: -3, ymax: 9 }, { equal: false, onResize: drawTrace });
+
+    log = new EquationLog('linear', 'linearLog', 'linearLogClear', {
+      keyOf: d => d.m.map(v => v.toFixed(2)).join(','),
+      texOf: d => `A = \\left[\\begin{smallmatrix} ${fmt(d.m[0], 1)} & ${fmt(d.m[1], 1)} \\\\ ${fmt(d.m[2], 1)} & ${fmt(d.m[3], 1)} \\end{smallmatrix}\\right] \\; \\text{${analyze2x2(...d.m).type}}`,
+      onPick: entry => {
+        setMatrix(entry.data.m);
+        starts = entry.data.starts.map(p => ({ ...p }));
+        lastChanged = null;
+        mark(-1);
+        update();
+      },
+      onChange: () => { draw(); drawTrace(); }
+    });
+
     for (const k of ['a', 'b', 'c', 'd']) {
-      s[k] = slider('mat' + k.toUpperCase(), () => { lastChanged = k; el('linearPreset').value = ''; update(); });
+      s[k] = slider('mat' + k.toUpperCase(), () => { lastChanged = k; mark(-1); update(); log.update(data()); });
     }
-    const sel = el('linearPreset');
-    sel.add(new Option('—', ''));
-    presets.forEach((p, i) => sel.add(new Option(p.name, i)));
-    sel.addEventListener('change', () => {
-      if (sel.value === '') return;
-      setMatrix(presets[+sel.value].m);
+    mark = chipRow('linearChips', presets, i => {
+      setMatrix(presets[i].m);
       lastChanged = null;
       update();
+      log.add(data());
     });
+
     ['linearField', 'linearEigen', 'linearFlow'].forEach(id => el(id).addEventListener('change', draw));
-    el('linearClear').addEventListener('click', () => { starts = []; update(); });
+    el('linearClear').addEventListener('click', () => { starts = []; update(); log.update(data()); });
+    // a fresh copy, so the one before it stays put while you keep editing
+    el('linearSave').addEventListener('click', () => {
+      log.add(data(), true);
+      toast('saved to the log');
+      draw();
+    });
 
     el('linearCanvas').addEventListener('click', e => {
+      if (plot.wasDrag()) return;
       const p = pointerPos(el('linearCanvas'), e);
       starts.push(plot.toWorld(p.x, p.y));
       if (starts.length > 12) starts.shift();
       update();
+      log.update(data());
     });
 
-    // a matrix with any trace and determinant: [[0, 1], [-det, trace]]
-    el('traceCanvas').addEventListener('click', e => {
+    // a matrix with any trace and determinant: [[0, 1], [-det, trace]]. drag around the map
+    let tracing = false;
+    const pickTrace = e => {
       const p = pointerPos(el('traceCanvas'), e);
       const w = trace.toWorld(p.x, p.y);
-      const t = clamp(Math.round(w.x * 20) / 20, -3, 3);
-      const d = clamp(Math.round(w.y * 20) / 20, -3, 3);
-      setMatrix([0, 1, -d, t]);
-      el('linearPreset').value = '';
+      setMatrix([0, 1, -clamp(Math.round(w.y * 20) / 20, -3, 3), clamp(Math.round(w.x * 20) / 20, -3, 3)]);
+      mark(-1);
       lastChanged = null;
       update();
-    });
+    };
+    el('traceCanvas').addEventListener('pointerdown', e => { tracing = true; el('traceCanvas').setPointerCapture(e.pointerId); pickTrace(e); });
+    el('traceCanvas').addEventListener('pointermove', e => { if (tracing) pickTrace(e); });
+    el('traceCanvas').addEventListener('pointerup', () => { tracing = false; log.update(data()); });
 
-    sel.value = '1';
-    setMatrix(presets[1].m);
-    update();
+    const cur = log.entries[0];
+    if (cur) {
+      log.current = cur.id;
+      setMatrix(cur.data.m);
+      starts = cur.data.starts.map(p => ({ ...p }));
+      mark(-1);
+      update();
+    } else {
+      mark(1);
+      setMatrix(presets[1].m);
+      update();
+      log.add(data());
+    }
+    log.render();
   }
 
   function frame() {
@@ -584,14 +862,14 @@ const linearMode = (() => {
 const nonlinMode = (() => {
   const el = id => document.getElementById(id);
   const presets = [
-    { name: 'Damped pendulum', fx: 'y', fy: '-sin(x) - a*y', a: 0.3, b: 0, box: [-7, 7, -4, 4] },
-    { name: 'Predator and prey', fx: 'a*x - x*y', fy: 'x*y - b*y', a: 1, b: 1, box: [-0.5, 4.5, -0.5, 4] },
-    { name: 'Van der Pol oscillator', fx: 'y', fy: 'a*(1 - x^2)*y - x', a: 1, b: 0, box: [-4, 4, -4, 4] },
-    { name: 'Competing species', fx: 'x*(3 - x - a*y)', fy: 'y*(2 - x - b*y)', a: 2, b: 1, box: [-0.5, 3.5, -0.5, 3] },
-    { name: 'Custom', fx: null }
+    { name: 'pendulum', fx: 'y', fy: '-sin(x) - a*y', a: 0.3, b: 0, box: [-8, 8, -5, 5] },
+    { name: 'predator & prey', fx: 'a*x - x*y', fy: 'x*y - b*y', a: 1, b: 1, box: [-1, 5, -1, 4] },
+    { name: 'Van der Pol', fx: 'y', fy: 'a*(1 - x^2)*y - x', a: 1, b: 0, box: [-5, 5, -4, 4] },
+    { name: 'competing species', fx: 'x*(3 - x - a*y)', fy: 'y*(2 - x - b*y)', a: 2, b: 1, box: [-1, 4, -1, 3] },
+    { name: 'limit cycle', fx: 'x - y - x*(x^2 + y^2)', fy: 'x + y - y*(x^2 + y^2)', a: 1, b: 1, box: [-3, 3, -2.5, 2.5] }
   ];
 
-  let plot, sa, sb;
+  let plot, sa, sb, log, mark;
   let cx = null, cy = null;
   let starts = [];
   let curves = [];
@@ -604,6 +882,7 @@ const nonlinMode = (() => {
     const p = P();
     return [cx.fn({ x, y, ...p }), cy.fn({ x, y, ...p })];
   };
+  const data = () => ({ fx: el('nonlinX').value, fy: el('nonlinY').value, a: sa.value, b: sb.value, starts, box: plot.bounds });
 
   function jacobian(x, y) {
     const h = 1e-5;
@@ -646,17 +925,16 @@ const nonlinMode = (() => {
 
   function compile() {
     try {
-      cx = compileExpr(el('nonlinX').value, ['x', 'y', 'a', 'b']);
-      cy = compileExpr(el('nonlinY').value, ['x', 'y', 'a', 'b']);
-      F(0.3, 0.2);
+      const nx = compileExpr(el('nonlinX').value, ['x', 'y', 'a', 'b']);
+      const ny = compileExpr(el('nonlinY').value, ['x', 'y', 'a', 'b']);
+      nx.fn({ x: 0.3, y: 0.2, a: 1, b: 1 });
+      cx = nx; cy = ny;
       el('nonlinError').textContent = '';
       el('nonlinX').classList.remove('bad');
       el('nonlinY').classList.remove('bad');
       return true;
     } catch (e) {
       el('nonlinError').textContent = e.message;
-      el('nonlinX').classList.add('bad');
-      el('nonlinY').classList.add('bad');
       return false;
     }
   }
@@ -664,37 +942,42 @@ const nonlinMode = (() => {
   function draw() {
     plot.begin();
     plot.grid();
-    if (el('nonlinField').checked) drawField(plot, F, { spacing: 32 });
+    if (el('nonlinField').checked) drawField(plot, F, { spacing: 34 });
     if (el('nonlinFlow').checked) particles.draw(plot);
     if (el('nonlinNull').checked) {
       for (const [a, b] of zeroSet(plot, (x, y) => F(x, y)[0])) plot.line(a.x, a.y, b.x, b.y, COLORS.cream, 1.6);
       for (const [a, b] of zeroSet(plot, (x, y) => F(x, y)[1])) plot.line(a.x, a.y, b.x, b.y, COLORS.yellow, 1.6);
     }
-    curves.forEach(c => plot.path(c, COLORS.white, 1.8));
-    starts.forEach(p => plot.dot(p.x, p.y, 3.5, COLORS.bg, COLORS.white));
+    for (const entry of log.overlays()) {
+      log.curvesFor(entry, plot, d => {
+        const gx = compileExpr(d.fx, ['x', 'y', 'a', 'b']), gy = compileExpr(d.fy, ['x', 'y', 'a', 'b']);
+        return (x, y) => [gx.fn({ x, y, a: d.a, b: d.b }), gy.fn({ x, y, a: d.a, b: d.b })];
+      }).forEach(c => plot.path(c, fade(entry.color, 0.75), 2, [7, 4]));
+    }
+    curves.forEach(c => plot.path(c, COLORS.white, 2));
+    starts.forEach(p => plot.dot(p.x, p.y, 4, COLORS.bg, COLORS.white));
     equilibria.forEach((e, i) => {
-      plot.dot(e.x, e.y, 6, e.info.stable ? COLORS.yellow : COLORS.bg, COLORS.yellow, 2);
-      plot.text(String.fromCharCode(65 + i), e.x, e.y, COLORS.yellowBright, 'left', 'bottom', '600 12px "IBM Plex Sans", sans-serif');
+      plot.dot(e.x, e.y, 7, e.info.stable ? COLORS.yellow : COLORS.bg, COLORS.yellow, 2.5);
+      plot.text(' ' + String.fromCharCode(65 + i), e.x, e.y, COLORS.yellowBright, 'left', 'bottom', '600 13px "IBM Plex Sans", sans-serif');
     });
   }
 
   function equations() {
     const p = P();
+    const sc = { a: 'nonlinA', b: 'nonlinB' };
     tex('nonlinFormula',
-      `\\begin{cases} x' = ${toTex(cx.tree, p, lastChanged)} \\\\[4pt] y' = ${toTex(cy.tree, p, lastChanged)} \\end{cases}`, true);
+      `\\begin{cases} x' = ${toTex(cx.tree, p, lastChanged, sc)} \\\\[4pt] y' = ${toTex(cy.tree, p, lastChanged, sc)} \\end{cases}`, true);
     tex('nonlinJacobian',
-      `J(x, y) = \\begin{bmatrix} \\partial_x x' & \\partial_y x' \\\\ \\partial_x y' & \\partial_y y' \\end{bmatrix}`, true);
+      `J = \\begin{bmatrix} \\partial_x x' & \\partial_y x' \\\\ \\partial_x y' & \\partial_y y' \\end{bmatrix}`, true);
 
     let rows = '<tr><th></th><th style="text-align:right">point</th><th style="text-align:right">eigenvalues</th><th>type</th></tr>';
     equilibria.forEach((e, i) => {
-      const ev = e.info.real
-        ? `${fmt(e.info.l1)}, ${fmt(e.info.l2)}`
-        : `${fmt(e.info.alpha)} ± ${fmt(e.info.beta)}i`;
+      const ev = e.info.real ? `${fmt(e.info.l1)}, ${fmt(e.info.l2)}` : `${fmt(e.info.alpha)} ± ${fmt(e.info.beta)}i`;
       rows += `<tr class="row"><td>${String.fromCharCode(65 + i)}</td><td class="n">(${fmt(e.x)}, ${fmt(e.y)})</td><td class="n">${ev}</td><td>${e.info.type}</td></tr>`;
     });
     if (!equilibria.length) rows += '<tr class="row"><td></td><td colspan="3">no equilibria in view</td></tr>';
     el('nonlinTable').innerHTML = rows;
-    el('nonlinReadout').innerHTML = `<b>${equilibria.length}</b> equilibri${equilibria.length === 1 ? 'um' : 'a'} · filled = stable`;
+    el('nonlinReadout').innerHTML = `<b>${equilibria.length}</b> equilibri${equilibria.length === 1 ? 'um' : 'a'} in view · filled = stable`;
   }
 
   function update() {
@@ -705,45 +988,92 @@ const nonlinMode = (() => {
     draw();
   }
 
-  function loadPreset(i) {
-    const p = presets[i];
-    if (!p.fx) return;
-    el('nonlinX').value = p.fx;
-    el('nonlinY').value = p.fy;
-    sa.value = p.a;
-    sb.value = p.b;
-    const [xmin, xmax, ymin, ymax] = p.box;
-    plot.bounds = { xmin, xmax, ymin, ymax };
-    starts = [];
+  function restore(d) {
+    el('nonlinX').value = d.fx;
+    el('nonlinY').value = d.fy;
+    sa.value = d.a;
+    sb.value = d.b;
+    if (d.box) plot.bounds = Array.isArray(d.box)
+      ? { xmin: d.box[0], xmax: d.box[1], ymin: d.box[2], ymax: d.box[3] }
+      : { ...d.box };
+    starts = (d.starts || []).map(p => ({ ...p }));
     compile();
+    lastChanged = null;
+    update();
+  }
+
+  function commitTyped() {
+    const cur = log.currentEntry;
+    const d = data();
+    if (cx && cy && (!cur || cur.data.fx !== d.fx || cur.data.fy !== d.fy)) {
+      log.add(d);
+      toast('added to the log');
+      draw();
+    }
   }
 
   function init() {
-    plot = new Plot2D(el('nonlinCanvas'), { xmin: -4, xmax: 4, ymin: -4, ymax: 4 }, { onResize: () => update() });
-    sa = slider('nonlinA', () => { lastChanged = 'a'; update(); });
-    sb = slider('nonlinB', () => { lastChanged = 'b'; update(); });
-    const sel = el('nonlinPreset');
-    presets.forEach((p, i) => sel.add(new Option(p.name, i)));
-    sel.addEventListener('change', () => { lastChanged = null; loadPreset(+sel.value); update(); });
-    ['nonlinX', 'nonlinY'].forEach(id => el(id).addEventListener('input', () => {
-      sel.value = presets.length - 1;
-      if (compile()) update();
-    }));
+    plot = new Plot2D(el('nonlinCanvas'), { xmin: -8, xmax: 8, ymin: -5, ymax: 5 }, {
+      onResize: () => update(),
+      panZoom: true,
+      onView: draw,
+      onViewEnd: update,
+      probe: w => {
+        if (!cx) return '';
+        const [dx, dy] = F(w.x, w.y);
+        return `(x′, y′) = (${fmt(dx)}, ${fmt(dy)})`;
+      }
+    });
+    sa = slider('nonlinA', () => { lastChanged = 'a'; update(); log.update(data()); });
+    sb = slider('nonlinB', () => { lastChanged = 'b'; update(); log.update(data()); });
+
+    log = new EquationLog('nonlinear', 'nonlinLog', 'nonlinLogClear', {
+      keyOf: d => d.fx + '|' + d.fy,
+      texOf: d => {
+        const gx = compileExpr(d.fx, ['x', 'y', 'a', 'b']), gy = compileExpr(d.fy, ['x', 'y', 'a', 'b']);
+        return `x' = ${toTex(gx.tree, d)},\\ y' = ${toTex(gy.tree, d)}`;
+      },
+      onPick: entry => { mark(presets.findIndex(p => p.fx === entry.data.fx && p.fy === entry.data.fy)); restore(entry.data); },
+      onChange: draw
+    });
+
+    mark = chipRow('nonlinChips', presets, i => {
+      const p = presets[i];
+      restore({ ...p, starts: [] });
+      log.add(data());
+    });
+
+    ['nonlinX', 'nonlinY'].forEach(id => {
+      el(id).addEventListener('input', () => { mark(-1); if (compile()) update(); });
+      el(id).addEventListener('keydown', e => { if (e.key === 'Enter') commitTyped(); });
+      el(id).addEventListener('blur', commitTyped);
+    });
     ['nonlinField', 'nonlinNull', 'nonlinFlow'].forEach(id => el(id).addEventListener('change', draw));
-    el('nonlinClear').addEventListener('click', () => { starts = []; update(); });
+    el('nonlinClear').addEventListener('click', () => { starts = []; update(); log.update(data()); });
     el('nonlinCanvas').addEventListener('click', e => {
+      if (plot.wasDrag()) return;
       const p = pointerPos(el('nonlinCanvas'), e);
       starts.push(plot.toWorld(p.x, p.y));
       if (starts.length > 12) starts.shift();
       update();
+      log.update(data());
     });
-    loadPreset(0);
-    starts = [{ x: -6, y: 3.5 }, { x: 6.5, y: -3 }];
-    update();
+
+    const cur = log.entries[0];
+    if (cur) {
+      log.current = cur.id;
+      mark(presets.findIndex(p => p.fx === cur.data.fx && p.fy === cur.data.fy));
+      restore(cur.data);
+    } else {
+      mark(0);
+      restore({ ...presets[0], starts: [{ x: -7, y: 4 }, { x: 7.5, y: -3.5 }] });
+      log.add(data());
+    }
+    log.render();
   }
 
   function frame() {
-    if (!plot || !el('nonlinFlow').checked) return;
+    if (!plot || !cx || !el('nonlinFlow').checked) return;
     particles.step(plot, F, false);
     draw();
   }
@@ -766,7 +1096,7 @@ modeTabs('modes', key => {
 });
 
 function loop() {
-  if (current && started[current]) modes[current].frame();
+  if (current && started[current] && !document.hidden) modes[current].frame();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);

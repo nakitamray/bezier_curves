@@ -44,7 +44,7 @@ function setupCard(card) {
     e.stopPropagation();
     card.classList.toggle('folded');
     save();
-    window.dispatchEvent(new Event('resize')); // mini canvases inside may need a redraw
+    cardsMoved();
   });
 
   // bring a card to the front when you touch it
@@ -68,6 +68,7 @@ function setupCard(card) {
     if (!start) return;
     start = null;
     save();
+    cardsMoved();
   };
   head.addEventListener('pointerup', end);
   head.addEventListener('pointercancel', end);
@@ -85,12 +86,35 @@ function resetCards() {
     card.classList.remove('folded');
     store(`card:${PAGE}:${card.dataset.card}`, {});
   });
+  cardsMoved();
+}
+
+// how much of the screen the cards in this panel cover on each side, so plots can fit around them
+function cardInsets(panel) {
+  const ins = { left: 0, right: 0, top: 64, bottom: 24 };
+  if (isSmall()) return { left: 0, right: 0, top: 0, bottom: 0 };
+  if (document.body.classList.contains('ui-hidden')) return ins;
+  const W = window.innerWidth;
+  (panel || document).querySelectorAll('.card').forEach(c => {
+    const r = c.getBoundingClientRect();
+    if (!r.width || r.bottom < 0 || r.top > window.innerHeight) return;
+    if (r.left + r.width / 2 < W / 2) ins.left = Math.max(ins.left, r.right + 12);
+    else ins.right = Math.max(ins.right, W - r.left + 12);
+  });
+  // never squeeze the plot into nothing
+  if (W - ins.left - ins.right < W * 0.35) return { left: 0, right: 0, top: 64, bottom: 24 };
+  return ins;
+}
+
+function cardsMoved() {
+  window.dispatchEvent(new Event('cardsmoved'));
 }
 
 // ---------- hide everything to just play ----------
 
 function toggleCards(force) {
   const hidden = document.body.classList.toggle('ui-hidden', force);
+  setTimeout(cardsMoved, 260);
   const btn = document.getElementById('hideCards');
   if (btn) btn.innerHTML = hidden ? 'show cards <kbd>H</kbd>' : 'hide cards <kbd>H</kbd>';
 }
