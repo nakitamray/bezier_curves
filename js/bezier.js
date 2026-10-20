@@ -22,6 +22,14 @@ const plot = new Plot2D(canvas, { xmin: -10, xmax: 10, ymin: -7, ymax: 7 }, {
   onResize: () => render(),
   panZoom: true,
   claim: pos => hitTest(pos) !== -1 || hitCurvePoint(pos),
+  // double-tap a point to remove it. anywhere else resets the view
+  doubleTap: pos => {
+    const i = hitTest(pos);
+    if (i === -1) return false;
+    if (state.points.length > MIN_POINTS) setPoints(state.points.filter((_, k) => k !== i));
+    else toast('a curve needs at least two points');
+    return true;
+  },
   onView: () => renderSandbox(),
   probe: w => (state.hoverIndex !== -1 || state.hoverT ? '' : `(${fmt(w.x)}, ${fmt(w.y)})`)
 });
@@ -147,7 +155,7 @@ function label(str, p, color, side) {
   const s = plot.toScreen(p.x, p.y);
   const ctx = plot.ctx;
   ctx.fillStyle = color;
-  ctx.font = '600 13px Sora, sans-serif';
+  ctx.font = '600 14px Dosis, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = side < 0 ? 'bottom' : 'top';
   ctx.fillText(str, s.x + 10, s.y + side * 8);
@@ -455,14 +463,13 @@ canvas.addEventListener('pointerleave', () => {
   }
 });
 
-canvas.addEventListener('dblclick', e => {
+// shift + click on empty space adds a point there
+canvas.addEventListener('click', e => {
+  if (!e.shiftKey || plot.wasDrag()) return;
   const pos = pointerPos(canvas, e);
-  const i = hitTest(pos);
-  if (i !== -1) {
-    if (state.points.length > MIN_POINTS) setPoints(state.points.filter((_, k) => k !== i));
-  } else if (state.points.length < MAX_POINTS) {
-    setPoints([...state.points, plot.toWorld(pos.x, pos.y)]);
-  }
+  if (hitTest(pos) !== -1) return;
+  if (state.points.length >= MAX_POINTS) return toast(`${MAX_POINTS} points is the most`);
+  setPoints([...state.points, plot.toWorld(pos.x, pos.y)]);
 });
 
 // hovering a row in the table highlights that point everywhere else

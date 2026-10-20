@@ -24,6 +24,8 @@
     <button class="ghost-btn" id="hideCards">hide cards <kbd>H</kbd></button>
   </header>
 
+  <div class="watermark" id="watermark">BEZIER</div>
+
   <div class="stage">
     <canvas id="bezierCanvas"></canvas>
     <div class="readout" id="readout"></div>
@@ -33,7 +35,7 @@
     <section class="card narrow" data-card="curve" style="top: 72px; left: 18px">
       <div class="card-head"><h2>The curve</h2><button class="fold" aria-label="fold">▾</button></div>
       <div class="card-body">
-        <p>Drag the points. Grab the yellow dot to slide it along the curve.</p>
+        <p>Drag any point to reshape the curve. Grab the yellow dot to slide along it.</p>
         <div class="row">
           <button id="playButton" class="play" aria-label="play"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4v16l13-8z"/></svg></button>
           <input type="range" id="tSlider" min="0" max="1" step="0.001" value="0.5" style="flex:1">
@@ -83,6 +85,7 @@
     <section class="card fit" data-card="matrix" style="bottom: 18px; left: 18px">
       <div class="card-head"><h2>Matrix form</h2><button class="fold" aria-label="fold">▾</button></div>
       <div class="card-body">
+        <p class="tip">The numbers in P are the points. Drag one sideways to move that point.</p>
         <div class="eq" id="matrixEq"></div>
         <div class="eq small" id="matrixResult"></div>
         <hr>
@@ -91,7 +94,23 @@
     </section>
   </div>
 
-  <div class="hint">drag empty space to pan · scroll to zoom · drag underlined numbers</div>
+  <div class="help" id="help" hidden>
+    <div>
+    <h4>How to play with the curve</h4>
+    <ul>
+      <li><b>drag a point</b><span>reshape the curve</span></li>
+      <li><b>drag the yellow dot</b><span>slide along the curve (that is t)</span></li>
+      <li><b>shift + click</b><span>add a control point there</span></li>
+      <li><b>double-tap a point</b><span>remove it</span></li>
+      <li><b>drag / scroll</b><span>move around and zoom the board</span></li>
+      <li><b>double-tap empty</b><span>reset the view</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>space</b><span>play / pause t</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <p class="credit">big lettering: Chaos by Sigrid Liira, SUVA Type Foundry</p>
+  </div>
 
   <script src="lib/katex/katex.min.js"></script>
   <script src="js/common.js"></script>

@@ -83,6 +83,24 @@ function setupCanvas(canvas, onResize) {
   return view;
 }
 
+// two quick taps (or clicks) in about the same place. works for mouse and touch
+function onDoubleTap(el, fn) {
+  let last = null;
+  let down = null;
+  el.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+  el.addEventListener('pointerup', e => {
+    // a drag is not a tap
+    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { last = null; return; }
+    const now = performance.now();
+    if (last && now - last.t < 340 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 26) {
+      last = null;
+      fn(pointerPos(el, e), e);
+      return;
+    }
+    last = { t: now, x: e.clientX, y: e.clientY };
+  });
+}
+
 function pointerPos(canvas, e) {
   const r = canvas.getBoundingClientRect();
   return { x: e.clientX - r.left, y: e.clientY - r.top };
@@ -99,6 +117,7 @@ class Plot2D {
     this.insets = opts.insets || null; // () => {left, right, top, bottom} in px, space covered by cards
     this.view = setupCanvas(canvas, () => this.onResize && this.onResize());
     this.ctx = this.view.ctx;
+    this.home = { ...bounds };
     if (opts.panZoom) this.enablePanZoom(opts);
     if (opts.probe) this.enableProbe(opts.probe);
   }
@@ -107,6 +126,12 @@ class Plot2D {
   // claim(pos) lets the page keep a drag for itself (like grabbing a point)
   enablePanZoom(opts) {
     const c = this.canvas;
+    this.viewOpts = opts;
+    onDoubleTap(c, pos => {
+      if (opts.doubleTap && opts.doubleTap(pos)) return;
+      this.resetView();
+      if (typeof toast === 'function') toast('view reset');
+    });
     let drag = null;
     this.moved = false;
     c.addEventListener('pointerdown', e => {
@@ -151,6 +176,13 @@ class Plot2D {
       clearTimeout(this.wheelTimer);
       this.wheelTimer = setTimeout(() => opts.onViewEnd && opts.onViewEnd(), 150);
     }, { passive: false });
+  }
+
+  // back to where it started
+  resetView() {
+    this.bounds = { ...this.home };
+    this.viewOpts && this.viewOpts.onView && this.viewOpts.onView();
+    this.viewOpts && this.viewOpts.onViewEnd && this.viewOpts.onViewEnd();
   }
 
   // true right after a drag, so a click handler can ignore the click that ends a pan
@@ -360,7 +392,7 @@ class Plot2D {
     const s = this.toScreen(x, y);
     const ctx = this.ctx;
     ctx.fillStyle = color;
-    ctx.font = font || '500 12px Sora, sans-serif';
+    ctx.font = font || '500 13px Dosis, sans-serif';
     ctx.textAlign = align;
     ctx.textBaseline = baseline;
     ctx.fillText(str, s.x, s.y);
@@ -426,6 +458,9 @@ function modeTabs(containerId, onChange) {
       p.hidden = p.dataset.panel !== key;
     });
     if (location.hash.slice(1) !== key) history.replaceState(null, '', '#' + key);
+    const mark = document.getElementById('watermark');
+    const btn = buttons.find(b => b.dataset.mode === key);
+    if (mark && btn && btn.dataset.mark) mark.textContent = btn.dataset.mark;
     onChange(key);
   };
   buttons.forEach(b => b.addEventListener('click', () => select(b.dataset.mode)));

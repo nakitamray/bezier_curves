@@ -40,6 +40,41 @@ function boardOpts(canvasId, extra) {
   return { equal: false, insets: () => cardInsets(panel), ...extra };
 }
 
+// set a slider and let everything that listens to it know
+function setSlider(sl, v) {
+  const el = sl.el;
+  v = clamp(v, parseFloat(el.min), parseFloat(el.max));
+  const step = parseFloat(el.step) || 0.01;
+  sl.value = Math.round(v / step) * step;
+  el.dispatchEvent(new Event('input'));
+}
+
+// grab things that are drawn on the board. grab(pos) returns what was hit (or null),
+// move(what, pos, start) handles the drag, hover(pos) picks the cursor
+function boardDrag(canvas, { grab, move, end, hover }) {
+  let held = null;
+  canvas.addEventListener('pointerdown', e => {
+    const pos = pointerPos(canvas, e);
+    const what = grab(pos);
+    if (!what) return;
+    held = { what, start: pos };
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', e => {
+    const pos = pointerPos(canvas, e);
+    if (held) move(held.what, pos, held.start);
+    else canvas.style.cursor = hover ? hover(pos) || '' : '';
+  });
+  const stop = e => {
+    if (!held) return;
+    held = null;
+    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+    end && end();
+  };
+  canvas.addEventListener('pointerup', stop);
+  canvas.addEventListener('pointercancel', stop);
+}
+
 // slide a slider from one value to another over a couple of seconds
 function sweep(sliderObj, from, to, ms, done) {
   const t0 = performance.now();
@@ -71,6 +106,8 @@ const limitMode = (() => {
   ];
 
   let plot, sa, se, sl;
+  let holdView = false;
+  let presetIndex = 0;
   let compiled = null;
   let lastChanged = null;
 
@@ -107,7 +144,9 @@ const limitMode = (() => {
     const a = sa.value, eps = se.value, L = sl.value;
     const { delta, bad } = findDelta(a, L, eps);
 
-    if (el('limitZoom').checked) {
+    if (holdView) {
+      // leave the view alone while dragging, or the board would slide out from under the mouse
+    } else if (el('limitZoom').checked) {
       const h = Math.max(eps * 3, 0.05);
       plot.bounds = { xmin: a - h * 1.3, xmax: a + h * 1.3, ymin: L - h, ymax: L + h };
     } else {
@@ -215,7 +254,7 @@ const limitMode = (() => {
     sa = slider('limitA', () => { lastChanged = 'a'; snap(); update(); });
     se = slider('limitEps', () => { lastChanged = 'eps'; update(); });
     sl = slider('limitL', () => { lastChanged = 'L'; update(); }, 2);
-    const mark = chipRow('limitChips', presets, i => { lastChanged = null; loadPreset(i); update(); });
+    const mark = chipRow('limitChips', presets, i => { lastChanged = null; presetIndex = i; loadPreset(i); update(); });
     const sel = { set value(i) { mark(+i); } };
     mark(0);
     el('limitShrink').addEventListener('click', () => { lastChanged = 'eps'; sweep(se, se.value, 0.02, 2500); });
@@ -226,6 +265,35 @@ const limitMode = (() => {
     });
     el('limitSnap').addEventListener('click', () => { snap(); lastChanged = 'L'; update(); });
     el('limitZoom').addEventListener('change', update);
+
+    const canvas = el('limitCanvas');
+    const near = (pos, y) => Math.abs(pos.y - plot.toScreen(0, y).y) < 10;
+    const onDot = pos => {
+      const s = plot.toScreen(sa.value, sl.value);
+      return Math.hypot(pos.x - s.x, pos.y - s.y) < 16;
+    };
+    boardDrag(canvas, {
+      grab: pos => {
+        if (onDot(pos)) return 'a';
+        if (near(pos, sl.value + se.value) || near(pos, sl.value - se.value)) return 'eps';
+        return null;
+      },
+      move: (what, pos) => {
+        holdView = true;
+        const w = plot.toWorld(pos.x, pos.y);
+        if (what === 'eps') setSlider(se, Math.abs(w.y - sl.value));
+        else setSlider(sa, w.x);
+      },
+      end: () => { holdView = false; update(); },
+      hover: pos => (onDot(pos) ? 'ew-resize' : near(pos, sl.value + se.value) || near(pos, sl.value - se.value) ? 'ns-resize' : '')
+    });
+    onDoubleTap(canvas, () => {
+      se.value = 0.5;
+      loadPreset(presetIndex);
+      lastChanged = null;
+      update();
+      toast('back to the start');
+    });
     loadPreset(0);
     update();
   }
@@ -252,6 +320,8 @@ const seqMode = (() => {
   ];
 
   let plot, se, sc;
+  let holdView = false;
+  let lastL = null;
   let compiled = null;
   let lastChanged = null;
 
@@ -283,7 +353,8 @@ const seqMode = (() => {
     }
     if (L !== null) { lo = Math.min(lo, L - eps); hi = Math.max(hi, L + eps); }
     const pad = (hi - lo) * 0.12 || 1;
-    plot.bounds = { xmin: -count * 0.04, xmax: count * 1.04, ymin: lo - pad, ymax: hi + pad };
+    lastL = L;
+    if (!holdView) plot.bounds = { xmin: -count * 0.04, xmax: count * 1.04, ymin: lo - pad, ymax: hi + pad };
     const v = plot.visible();
 
     plot.begin();
@@ -377,6 +448,29 @@ const seqMode = (() => {
       const c = compileOrShow(e.target.value, ['n'], 'seqExpr', 'seqError');
       if (c) { compiled = c; update(); }
     });
+
+    const canvas = el('seqCanvas');
+    const onEdge = pos => lastL !== null && [lastL + se.value, lastL - se.value].some(y => Math.abs(pos.y - plot.toScreen(0, y).y) < 10);
+    boardDrag(canvas, {
+      grab: pos => (onEdge(pos) ? 'eps' : null),
+      move: (what, pos) => {
+        holdView = true;
+        setSlider(se, Math.abs(plot.toWorld(pos.x, pos.y).y - lastL));
+      },
+      end: () => { holdView = false; update(); },
+      hover: pos => (onEdge(pos) ? 'ns-resize' : '')
+    });
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      setSlider(sc, sc.value + (e.deltaY > 0 ? 5 : -5));
+    }, { passive: false });
+    onDoubleTap(canvas, () => {
+      se.value = 0.1;
+      sc.value = 60;
+      lastChanged = null;
+      update();
+      toast('back to the start');
+    });
     loadPreset(0);
     update();
   }
@@ -400,6 +494,8 @@ const riemannMode = (() => {
   ];
 
   let plot, gap, sn, sa, sb;
+  let holdView = false;
+  let presetIndex = 0;
   let compiled = null;
   let lastChanged = null;
   const f = x => compiled.fn({ x });
@@ -445,7 +541,7 @@ const riemannMode = (() => {
       if (isFinite(y)) { lo = Math.min(lo, y); hi = Math.max(hi, y); }
     }
     const padY = (hi - lo) * 0.15 || 1, padX = (b - a) * 0.12 || 1;
-    plot.bounds = { xmin: a - padX, xmax: b + padX, ymin: lo - padY, ymax: hi + padY };
+    if (!holdView) plot.bounds = { xmin: a - padX, xmax: b + padX, ymin: lo - padY, ymax: hi + padY };
 
     plot.begin();
     plot.grid({ labelEvery: 2, step: niceStep((b - a + 2 * padX) / 8), ystep: niceStep((hi - lo + 2 * padY) / 6) });
@@ -484,8 +580,8 @@ const riemannMode = (() => {
     gap.line(0, 0, 100, 0, COLORS.axis, 1);
     gap.path(data, COLORS.creamDim, 1.5);
     gap.dot(n, data[n - 1].y, 4.5, COLORS.yellow);
-    gap.text('U − L', 1, max * 1.1, COLORS.muted, 'left', 'top', '11px Sora, sans-serif');
-    gap.text('n →', 100, 0, COLORS.muted, 'right', 'bottom', '11px Sora, sans-serif');
+    gap.text('U − L', 1, max * 1.1, COLORS.muted, 'left', 'top', '12px Dosis, sans-serif');
+    gap.text('n →', 100, 0, COLORS.muted, 'right', 'bottom', '12px Dosis, sans-serif');
   }
 
   function equations(S) {
@@ -539,7 +635,7 @@ const riemannMode = (() => {
     sn = slider('riemannN', () => { lastChanged = 'n'; update(); }, 0);
     sa = slider('riemannA', () => { lastChanged = 'a'; update(); });
     sb = slider('riemannB', () => { lastChanged = 'b'; update(); });
-    const mark = chipRow('riemannChips', presets, i => { loadPreset(i); update(); });
+    const mark = chipRow('riemannChips', presets, i => { presetIndex = i; loadPreset(i); update(); });
     const sel = { set value(i) { mark(+i); } };
     mark(0);
     el('riemannPlay').addEventListener('click', () => { lastChanged = 'n'; sweep(sn, 1, 60, 3500); });
@@ -549,6 +645,32 @@ const riemannMode = (() => {
       if (c) { compiled = c; update(); }
     });
     document.querySelectorAll('input[name="sumType"]').forEach(r => r.addEventListener('change', update));
+
+    const canvas = el('riemannCanvas');
+    const nearX = (pos, x) => Math.abs(pos.x - plot.toScreen(x, 0).x) < 10;
+    boardDrag(canvas, {
+      grab: pos => (nearX(pos, sa.value) ? 'a' : nearX(pos, sb.value) ? 'b' : null),
+      move: (what, pos) => {
+        holdView = true;
+        const x = plot.toWorld(pos.x, pos.y).x;
+        if (what === 'a') setSlider(sa, Math.min(x, sb.value - 0.1));
+        else setSlider(sb, Math.max(x, sa.value + 0.1));
+      },
+      end: () => { holdView = false; update(); },
+      hover: pos => (nearX(pos, sa.value) || nearX(pos, sb.value) ? 'ew-resize' : 'ns-resize')
+    });
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      lastChanged = 'n';
+      setSlider(sn, sn.value + (e.deltaY > 0 ? -1 : 1));
+    }, { passive: false });
+    onDoubleTap(canvas, () => {
+      sn.value = 6;
+      loadPreset(presetIndex);
+      lastChanged = null;
+      update();
+      toast('back to the start');
+    });
     loadPreset(0);
     update();
   }
@@ -660,7 +782,7 @@ const uniformMode = (() => {
     sup.path(data, COLORS.creamDim, 1.5);
     data.forEach(d => sup.dot(d.x, d.y, 1.8, d.y < eps ? COLORS.yellow : COLORS.cream));
     sup.dot(n, data[n - 1].y, 5, COLORS.yellow, COLORS.bg);
-    sup.text('n →', 60, 0, COLORS.muted, 'right', 'top', '11px Sora, sans-serif');
+    sup.text('n →', 60, 0, COLORS.muted, 'right', 'top', '12px Dosis, sans-serif');
   }
 
   function equations(s) {
@@ -705,6 +827,31 @@ const uniformMode = (() => {
     mark(0);
     el('uniformPlay').addEventListener('click', () => sweep(sn, 1, 60, 4000));
     ['uniformTrail', 'uniformTube'].forEach(id => el(id).addEventListener('change', update));
+
+    const canvas = el('uniformCanvas');
+    const onTube = pos => {
+      const w = plot.toWorld(pos.x, pos.y);
+      const y = preset.lim(w.x);
+      return [y + se.value, y - se.value].some(v => Math.abs(pos.y - plot.toScreen(w.x, v).y) < 9);
+    };
+    boardDrag(canvas, {
+      grab: pos => (onTube(pos) ? { kind: 'eps' } : { kind: 'n', n: sn.value }),
+      move: (what, pos, start) => {
+        if (what.kind === 'eps') {
+          const w = plot.toWorld(pos.x, pos.y);
+          setSlider(se, Math.abs(w.y - preset.lim(w.x)));
+        } else {
+          setSlider(sn, what.n + Math.round((pos.x - start.x) / 14));
+        }
+      },
+      hover: pos => (onTube(pos) ? 'ns-resize' : 'ew-resize')
+    });
+    onDoubleTap(canvas, () => {
+      sn.value = 5;
+      se.value = 0.15;
+      update();
+      toast('back to the start');
+    });
     load(0);
     update();
   }

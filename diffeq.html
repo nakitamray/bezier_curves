@@ -20,13 +20,15 @@
       <a href="analysis.html">Analysis</a>
     </nav>
     <div class="modes" id="modes">
-      <button data-mode="slope">Slope fields</button>
-      <button data-mode="linear">Linear systems</button>
-      <button data-mode="nonlinear">Nonlinear systems</button>
+      <button data-mode="slope" data-mark="SLOPE FIELDS">Slope fields</button>
+      <button data-mode="linear" data-mark="LINEAR">Linear systems</button>
+      <button data-mode="nonlinear" data-mark="NONLINEAR">Nonlinear systems</button>
     </div>
     <button class="ghost-btn" id="resetCards">tidy cards</button>
     <button class="ghost-btn" id="hideCards">hide cards <kbd>H</kbd></button>
   </header>
+
+  <div class="watermark" id="watermark">DIFF EQ</div>
 
   <!-- ============ slope fields ============ -->
   <div data-panel="slope">
@@ -38,10 +40,11 @@
       <section class="card" data-card="slope-eq" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The equation</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
+          <p class="tip">Click anywhere on the board to start a solution there.</p>
           <div class="chips" id="slopeChips"></div>
           <div class="input-row">
             <span class="prefix">y′ =</span>
-            <input type="text" id="slopeExpr" class="text-input" spellcheck="false" title="press Enter to add it to the log">
+            <input type="text" id="slopeExpr" class="text-input" spellcheck="false" title="it gets saved to History once you stop typing">
           </div>
           <div class="error" id="slopeError"></div>
           <div class="eq big" id="slopeFormula"></div>
@@ -70,11 +73,11 @@
       </section>
 
       <section class="card narrow" data-card="slope-log" style="bottom: 18px; right: 18px">
-        <div class="card-head"><h2>Log</h2><button class="fold" aria-label="fold">▾</button></div>
+        <div class="card-head"><h2>History</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
-          <p>Every equation you try is kept here. Click one to go back to it. The dot toggles drawing it underneath.</p>
+          <p>Every equation you try lands here, so you can compare. <strong>Hover</strong> one to see its solutions again, <strong>click</strong> to switch back, <strong>●</strong> keeps it drawn (dashed, with its number).</p>
           <ul class="log" id="slopeLog"></ul>
-          <div class="row"><button class="btn" id="slopeLogClear">clear log</button></div>
+          <div class="row"><button class="btn" id="slopeLogClear">clear history</button></div>
         </div>
       </section>
     </div>
@@ -90,6 +93,7 @@
       <section class="card" data-card="linear-matrix" style="top: 72px; left: 18px">
         <div class="card-head"><h2>x′ = Ax</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
+          <p class="tip">Click the board to start a trajectory. Drag a matrix entry to change it.</p>
           <div class="chips" id="linearChips"></div>
           <div class="eq big" id="linearFormula"></div>
           <p>Drag any entry of the matrix, or use the sliders.</p>
@@ -103,7 +107,7 @@
             <label class="check"><input type="checkbox" id="linearEigen" checked> eigenvectors</label>
             <label class="check"><input type="checkbox" id="linearFlow" checked> particles</label>
           </div>
-          <div class="row"><button class="btn" id="linearClear">clear curves</button><button class="btn" id="linearSave">add to log</button></div>
+          <div class="row"><button class="btn" id="linearClear">clear curves</button><button class="btn" id="linearSave">save to history</button></div>
         </div>
       </section>
 
@@ -121,10 +125,11 @@
       </section>
 
       <section class="card narrow" data-card="linear-log" style="bottom: 18px; left: 18px">
-        <div class="card-head"><h2>Log</h2><button class="fold" aria-label="fold">▾</button></div>
+        <div class="card-head"><h2>History</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
+          <p>Every matrix you settle on lands here. <strong>Hover</strong> to compare, <strong>click</strong> to switch back, <strong>●</strong> keeps it drawn.</p>
           <ul class="log" id="linearLog"></ul>
-          <div class="row"><button class="btn" id="linearLogClear">clear log</button></div>
+          <div class="row"><button class="btn" id="linearLogClear">clear history</button></div>
         </div>
       </section>
     </div>
@@ -140,6 +145,7 @@
       <section class="card" data-card="nonlin-system" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The system</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
+          <p class="tip">Click the board to start a trajectory from that point.</p>
           <div class="chips" id="nonlinChips"></div>
           <div class="input-row"><span class="prefix">x′ =</span><input type="text" id="nonlinX" class="text-input" spellcheck="false"></div>
           <div class="input-row"><span class="prefix">y′ =</span><input type="text" id="nonlinY" class="text-input" spellcheck="false"></div>
@@ -167,16 +173,55 @@
       </section>
 
       <section class="card narrow" data-card="nonlin-log" style="bottom: 18px; right: 18px">
-        <div class="card-head"><h2>Log</h2><button class="fold" aria-label="fold">▾</button></div>
+        <div class="card-head"><h2>History</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
+          <p>Every system you try lands here. <strong>Hover</strong> to compare, <strong>click</strong> to switch back, <strong>●</strong> keeps it drawn.</p>
           <ul class="log" id="nonlinLog"></ul>
-          <div class="row"><button class="btn" id="nonlinLogClear">clear log</button></div>
+          <div class="row"><button class="btn" id="nonlinLogClear">clear history</button></div>
         </div>
       </section>
     </div>
   </div>
 
-  <div class="hint">click to start a solution · drag to pan · scroll to zoom · Enter logs an equation</div>
+  <div class="help" id="help" hidden>
+    <div>
+    <h4>Using the board</h4>
+    <ul>
+      <li><b>click</b><span>start a solution from that point (the white curve)</span></li>
+      <li><b>drag / scroll</b><span>move around and zoom</span></li>
+      <li><b>double-tap</b><span>reset the view</span></li>
+    </ul>
+    </div>
+    <div data-panel="slope">
+    <h4>Slope fields</h4>
+    <ul>
+      <li><b>type an equation</b><span>or pick one of the chips. it is saved to History by itself</span></li>
+      <li><b>History</b><span>every equation you tried. hover one to see its curves again, click it to go back, ● keeps it drawn</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <div data-panel="linear">
+    <h4>Linear systems</h4>
+    <ul>
+      <li><b>matrix</b><span>drag any entry, or the a b c d sliders</span></li>
+      <li><b>map</b><span>click or drag on the trace–determinant map to jump to that kind of system</span></li>
+      <li><b>History</b><span>every matrix you settled on. hover to compare, click to go back</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <div data-panel="nonlinear">
+    <h4>Nonlinear systems</h4>
+    <ul>
+      <li><b>equilibria</b><span>the yellow dots, found by themselves. filled means stable</span></li>
+      <li><b>History</b><span>every system you tried. hover to compare, click to go back</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <p class="credit">big lettering: Chaos by Sigrid Liira, SUVA Type Foundry</p>
+  </div>
 
   <script src="lib/katex/katex.min.js"></script>
   <script src="js/common.js"></script>

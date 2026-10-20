@@ -20,13 +20,15 @@
       <a href="analysis.html">Analysis</a>
     </nav>
     <div class="modes" id="modes">
-      <button data-mode="graph">z = f(x, y)</button>
-      <button data-mode="patch">Bézier surface</button>
-      <button data-mode="triple">Triple integrals</button>
+      <button data-mode="graph" data-mark="GRAPHS">z = f(x, y)</button>
+      <button data-mode="patch" data-mark="SURFACE">Bézier surface</button>
+      <button data-mode="triple" data-mark="TRIPLE">Triple integrals</button>
     </div>
     <button class="ghost-btn" id="resetCards">tidy cards</button>
     <button class="ghost-btn" id="hideCards">hide cards <kbd>H</kbd></button>
   </header>
+
+  <div class="watermark" id="watermark">SURFACES</div>
 
   <!-- ============ graphs of f(x, y) ============ -->
   <div data-panel="graph">
@@ -96,7 +98,7 @@
       <section class="card narrow" data-card="patch-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>Sculpt it</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
-          <p>Grab a control point and drag up or down. Drag anywhere else to spin it.</p>
+          <p class="tip">Grab a dot on the surface and drag it up or down.</p>
           <div class="chips">
             <button data-patch="hill">hill</button>
             <button data-patch="saddle">saddle</button>
@@ -178,7 +180,47 @@
     </div>
   </div>
 
-  <div class="hint">drag to spin any direction · shift or right-drag to pan · scroll to zoom · double-click to reset</div>
+  <div class="help" id="help" hidden>
+    <div>
+    <h4>Moving around in 3D</h4>
+    <ul>
+      <li><b>drag</b><span>spin it in any direction</span></li>
+      <li><b>shift-drag</b><span>slide the view (right-drag works too)</span></li>
+      <li><b>scroll</b><span>zoom</span></li>
+      <li><b>double-tap</b><span>reset the view</span></li>
+    </ul>
+    </div>
+    <div data-panel="graph">
+    <h4>This surface</h4>
+    <ul>
+      <li><b>a, b sliders</b><span>reshape the surface. the matching number in the equation lights up</span></li>
+      <li><b>x₀, y₀</b><span>move the point. the tangent plane and gradient follow it</span></li>
+      <li><b>drop a ball</b><span>watch it roll downhill along −∇f</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <div data-panel="patch">
+    <h4>Sculpting</h4>
+    <ul>
+      <li><b>drag a dot</b><span>pull that control point up or down</span></li>
+      <li><b>u, v</b><span>move the yellow and white curves across the surface</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <div data-panel="triple">
+    <h4>Slicing a solid</h4>
+    <ul>
+      <li><b>coordinates</b><span>switch how the solid is cut into cells</span></li>
+      <li><b>pieces n</b><span>more cells, better estimate</span></li>
+      <li><b>pull apart</b><span>spread the cells out to see inside</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <p class="credit">big lettering: Chaos by Sigrid Liira, SUVA Type Foundry</p>
+  </div>
 
   <script src="lib/katex/katex.min.js"></script>
   <script src="js/common.js"></script>

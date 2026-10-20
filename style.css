@@ -1,31 +1,38 @@
 /* the canvas is the page. cards float on top of it */
 
 @font-face {
-  font-family: 'Sora';
+  font-family: 'Dosis';
   font-weight: 300;
   font-display: swap;
-  src: url(lib/fonts/sora-latin-300-normal.woff2) format('woff2');
+  src: url(lib/fonts/dosis-300.woff2) format('woff2');
 }
 
 @font-face {
-  font-family: 'Sora';
+  font-family: 'Dosis';
   font-weight: 400;
   font-display: swap;
-  src: url(lib/fonts/sora-latin-400-normal.woff2) format('woff2');
+  src: url(lib/fonts/dosis-400.woff2) format('woff2');
 }
 
 @font-face {
-  font-family: 'Sora';
+  font-family: 'Dosis';
   font-weight: 500;
   font-display: swap;
-  src: url(lib/fonts/sora-latin-500-normal.woff2) format('woff2');
+  src: url(lib/fonts/dosis-500.woff2) format('woff2');
 }
 
 @font-face {
-  font-family: 'Sora';
+  font-family: 'Dosis';
   font-weight: 600;
   font-display: swap;
-  src: url(lib/fonts/sora-latin-600-normal.woff2) format('woff2');
+  src: url(lib/fonts/dosis-600.woff2) format('woff2');
+}
+
+/* Chaos by Sigrid Liira (2018), SUVA Type Foundry. capitals and numbers only, used big */
+@font-face {
+  font-family: 'Chaos';
+  font-display: block;
+  src: url(lib/fonts/chaos-regular.woff2) format('woff2');
 }
 
 @font-face {
@@ -75,11 +82,12 @@
   --paper: rgba(36, 36, 34, 0.9);
   --paper-solid: #252523;
   --ink: #e4dcc7;
-  --ink-soft: #9c9585;
+  --ink-soft: #b3ac9b;
   --ink-faint: rgba(239, 230, 207, 0.09);
   --dark-text: #1c1c1b;
   --serif: 'Syne', 'Avenir Next', 'Trebuchet MS', sans-serif;
-  --sans: 'Sora', 'Avenir Next', 'Segoe UI', sans-serif;
+  --sans: 'Dosis', 'Avenir Next Condensed', 'Segoe UI', sans-serif;
+  --display: 'Chaos', 'Syne', sans-serif;
   --mono: 'Space Mono', ui-monospace, Menlo, monospace;
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
@@ -97,9 +105,10 @@ body {
   background: var(--board);
   color: var(--chalk);
   font-family: var(--sans);
-  font-size: 13px;
-  line-height: 1.5;
-  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -398,7 +407,13 @@ body.ui-hidden .cards .card {
 .card .sub {
   margin: 0 0 10px;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 14.5px;
+  line-height: 1.4;
+}
+
+.card p strong {
+  color: var(--white);
+  font-weight: 600;
 }
 
 .card h3 {
@@ -652,7 +667,7 @@ select:focus {
   border: 1px solid rgba(239, 230, 207, 0.21);
   border-radius: 999px;
   padding: 2px 10px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
 }
 
@@ -955,22 +970,6 @@ body.scrubbing * {
   font-weight: 500;
 }
 
-.hint {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 14px;
-  z-index: 15;
-  white-space: nowrap;
-  font-size: 12px;
-  background: rgba(28, 28, 27, 0.75);
-  padding: 3px 10px;
-  border-radius: 999px;
-  color: var(--chalk-dim);
-  pointer-events: none;
-  text-align: right;
-  opacity: 0.8;
-}
 
 .probe {
   position: fixed;
@@ -1038,8 +1037,19 @@ body.scrubbing * {
   }
 
   .topbar .ghost-btn,
-  .hint {
+  .watermark {
     display: none;
+  }
+
+  .help-btn {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+  }
+
+  .help {
+    position: fixed;
+    top: 54px;
   }
 
   .stage {
@@ -1074,4 +1084,226 @@ body.scrubbing * {
     backdrop-filter: none;
     background: var(--paper-solid);
   }
+}
+
+/* ---------- scrollbars: thin, rounded, yellow on a dark track ---------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(233, 196, 106, 0.55) rgba(20, 20, 19, 0.45);
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(20, 20, 19, 0.45);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(233, 196, 106, 0.55);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 211, 107, 0.8);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.card-body::-webkit-scrollbar,
+.eq::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar,
+.modes::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+/* ---------- the section name, huge and faint, drawn on the board behind everything ---------- */
+
+.watermark {
+  position: fixed;
+  left: 50%;
+  bottom: 3vh;
+  transform: translateX(-50%);
+  z-index: 0;
+  font-family: var(--display);
+  font-size: clamp(60px, 9vw, 170px);
+  line-height: 0.9;
+  color: rgba(233, 196, 106, 0.12);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  transition: opacity 0.4s;
+}
+
+.stage {
+  z-index: 1;
+}
+
+/* ---------- help: how to use this board ---------- */
+
+.help-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(233, 196, 106, 0.5);
+  background: rgba(28, 28, 27, 0.85);
+  color: var(--yellow);
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.help-btn:hover,
+.help-btn.open {
+  background: var(--yellow);
+  color: var(--dark-text);
+}
+
+.help {
+  position: fixed;
+  right: 16px;
+  top: 58px;
+  z-index: 35;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  background: var(--paper-solid);
+  border: 1px solid rgba(239, 230, 207, 0.1);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 14px 16px 10px;
+  color: var(--ink);
+}
+
+.help h4 {
+  margin: 0 0 8px;
+  font-family: var(--serif);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.help ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.help li span {
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+
+.help li {
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px solid var(--ink-faint);
+  font-size: 14px;
+}
+
+.help li b {
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--yellow);
+  padding-top: 2px;
+}
+
+.help .sample {
+  border-bottom: 1.5px dotted var(--yellow);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--white);
+}
+
+.help .credit {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* the "you can drag this" nudge that shows up on the first card */
+.tip {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0 0 10px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: rgba(233, 196, 106, 0.1);
+  color: var(--chalk);
+  font-size: 14px;
+}
+
+.tip::before {
+  content: "↔";
+  color: var(--yellow);
+  font-family: var(--mono);
+}
+
+/* ---------- loader ---------- */
+
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--board);
+  display: grid;
+  place-items: center;
+  transition: opacity 0.6s ease, visibility 0.6s;
+}
+
+.loader.done {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loader canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.loader .title {
+  position: relative;
+  text-align: center;
+  pointer-events: none;
+}
+
+.loader .title h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(54px, 11vw, 170px);
+  line-height: 1;
+  color: var(--yellow);
+  text-shadow: 0 0 40px rgba(233, 196, 106, 0.25);
+}
+
+.loader .title p {
+  margin: 14px 0 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--chalk-dim);
+}
+
+.loader .credit {
+  position: absolute;
+  bottom: 18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(239, 230, 207, 0.35);
 }

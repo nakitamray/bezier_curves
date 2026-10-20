@@ -420,7 +420,7 @@ class EquationLog {
 
   render() {
     if (!this.entries.length) {
-      this.list.innerHTML = '<li class="log-empty" style="display:block;cursor:default">nothing yet</li>';
+      this.list.innerHTML = '<li class="log-empty" style="display:block;cursor:default">nothing yet. try an equation and it shows up here</li>';
       return;
     }
     this.list.innerHTML = this.entries.map(e => `
@@ -442,6 +442,24 @@ class EquationLog {
       }
     });
   }
+}
+
+// a click that isn't part of a double-tap (that one resets the view) or the end of a drag
+function singleClick(canvas, plot, fn) {
+  let pending = null;
+  canvas.addEventListener('click', e => {
+    if (plot.wasDrag()) return;
+    if (pending) {
+      clearTimeout(pending);
+      pending = null;
+      return;
+    }
+    const pos = pointerPos(canvas, e);
+    pending = setTimeout(() => {
+      pending = null;
+      fn(pos);
+    }, 260);
+  });
 }
 
 // translucent version of a hex color
@@ -625,7 +643,7 @@ const slopeMode = (() => {
     const cur = log.currentEntry;
     if (compiled && (!cur || cur.data.expr !== src)) {
       log.add(data());
-      toast('added to the log');
+      toast('saved to history');
       draw();
     }
   }
@@ -679,9 +697,7 @@ const slopeMode = (() => {
     ['slopeField', 'slopeEuler', 'slopeNull', 'slopeFlow'].forEach(id => el(id).addEventListener('change', draw));
     el('slopeClear').addEventListener('click', () => { starts = [starts[starts.length - 1]]; update(); log.update(data()); });
 
-    el('slopeCanvas').addEventListener('click', e => {
-      if (plot.wasDrag()) return;
-      const p = pointerPos(el('slopeCanvas'), e);
+    singleClick(el('slopeCanvas'), plot, p => {
       starts.push(plot.toWorld(p.x, p.y));
       if (starts.length > 8) starts.shift();
       lastChanged = 'start';
@@ -771,7 +787,7 @@ const linearMode = (() => {
       const vecs = info.repeated ? [[info.v1, info.l1]] : [[info.v1, info.l1], [info.v2, info.l2]];
       for (const [vec, l] of vecs) {
         plot.line(-vec.x * R, -vec.y * R, vec.x * R, vec.y * R, 'rgba(233, 196, 106, 0.7)', 1.5, [6, 4]);
-        plot.text(`λ = ${fmt(l)}`, vec.x * 3.4, vec.y * 3.4, COLORS.yellow, 'left', 'bottom', '600 13px Sora, sans-serif');
+        plot.text(`λ = ${fmt(l)}`, vec.x * 3.4, vec.y * 3.4, COLORS.yellow, 'left', 'bottom', '600 14px Dosis, sans-serif');
       }
     }
 
@@ -785,7 +801,7 @@ const linearMode = (() => {
     trace.begin();
     trace.grid({ labels: false, step: 1, ystep: 1 });
     trace.graph(t => (t * t) / 4, COLORS.creamDim, 1.5);
-    const label = (str, x, y) => trace.text(str, x, y, COLORS.muted, 'center', 'middle', '11px Sora, sans-serif');
+    const label = (str, x, y) => trace.text(str, x, y, COLORS.muted, 'center', 'middle', '12px Dosis, sans-serif');
     label('saddles', 0, -1.8);
     label('spiral sinks', -1.6, 4.6);
     label('spiral sources', 1.6, 4.6);
@@ -880,13 +896,11 @@ const linearMode = (() => {
     // a fresh copy, so the one before it stays put while you keep editing
     el('linearSave').addEventListener('click', () => {
       log.add(data(), true);
-      toast('saved to the log');
+      toast('saved to history');
       draw();
     });
 
-    el('linearCanvas').addEventListener('click', e => {
-      if (plot.wasDrag()) return;
-      const p = pointerPos(el('linearCanvas'), e);
+    singleClick(el('linearCanvas'), plot, p => {
       starts.push(plot.toWorld(p.x, p.y));
       if (starts.length > 12) starts.shift();
       update();
@@ -1035,7 +1049,7 @@ const nonlinMode = (() => {
     starts.forEach(p => plot.dot(p.x, p.y, 4, COLORS.bg, COLORS.white));
     equilibria.forEach((e, i) => {
       plot.dot(e.x, e.y, 7, e.info.stable ? COLORS.yellow : COLORS.bg, COLORS.yellow, 2.5);
-      plot.text(' ' + String.fromCharCode(65 + i), e.x, e.y, COLORS.yellowBright, 'left', 'bottom', '600 13px Sora, sans-serif');
+      plot.text(' ' + String.fromCharCode(65 + i), e.x, e.y, COLORS.yellowBright, 'left', 'bottom', '600 14px Dosis, sans-serif');
     });
   }
 
@@ -1084,7 +1098,7 @@ const nonlinMode = (() => {
     const d = data();
     if (cx && cy && (!cur || cur.data.fx !== d.fx || cur.data.fy !== d.fy)) {
       log.add(d);
-      toast('added to the log');
+      toast('saved to history');
       draw();
     }
   }
@@ -1135,9 +1149,7 @@ const nonlinMode = (() => {
     });
     ['nonlinField', 'nonlinNull', 'nonlinFlow'].forEach(id => el(id).addEventListener('change', draw));
     el('nonlinClear').addEventListener('click', () => { starts = []; update(); log.update(data()); });
-    el('nonlinCanvas').addEventListener('click', e => {
-      if (plot.wasDrag()) return;
-      const p = pointerPos(el('nonlinCanvas'), e);
+    singleClick(el('nonlinCanvas'), plot, p => {
       starts.push(plot.toWorld(p.x, p.y));
       if (starts.length > 12) starts.shift();
       update();

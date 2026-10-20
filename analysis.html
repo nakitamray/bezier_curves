@@ -20,14 +20,16 @@
       <a href="analysis.html" class="current">Analysis</a>
     </nav>
     <div class="modes" id="modes">
-      <button data-mode="limits">ε–δ limits</button>
-      <button data-mode="sequences">Sequences</button>
-      <button data-mode="riemann">Riemann sums</button>
-      <button data-mode="uniform">Uniform convergence</button>
+      <button data-mode="limits" data-mark="LIMITS">ε–δ limits</button>
+      <button data-mode="sequences" data-mark="SEQUENCES">Sequences</button>
+      <button data-mode="riemann" data-mark="RIEMANN">Riemann sums</button>
+      <button data-mode="uniform" data-mark="UNIFORM">Uniform convergence</button>
     </div>
     <button class="ghost-btn" id="resetCards">tidy cards</button>
     <button class="ghost-btn" id="hideCards">hide cards <kbd>H</kbd></button>
   </header>
+
+  <div class="watermark" id="watermark">ANALYSIS</div>
 
   <!-- ============ epsilon delta ============ -->
   <div data-panel="limits">
@@ -39,6 +41,7 @@
       <section class="card" data-card="limit-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The game</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
+          <p class="tip">Grab the edge of the yellow band, or the open dot, and drag.</p>
           <p>Someone hands you an ε (the yellow band). You win if you can find a δ (the cream band) so that every x inside it, except a itself, lands in the yellow band.</p>
           <div class="chips" id="limitChips"></div>
           <div class="input-row">
@@ -81,6 +84,7 @@
       <section class="card" data-card="seq-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The sequence</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
+          <p class="tip">Grab an edge of the yellow band and drag. Scroll for more terms.</p>
           <div class="chips" id="seqChips"></div>
           <div class="input-row">
             <span class="prefix">aₙ =</span>
@@ -116,6 +120,7 @@
       <section class="card" data-card="riemann-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The function</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
+          <p class="tip">Scroll over the board for more pieces. Drag a dashed line to move a or b.</p>
           <div class="chips" id="riemannChips"></div>
           <div class="input-row">
             <span class="prefix">f(x) =</span>
@@ -159,6 +164,7 @@
       <section class="card" data-card="uniform-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>A sequence of functions</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
+          <p class="tip">Drag sideways across the board to change n. Grab the tube edge for ε.</p>
           <div class="chips" id="uniformChips"></div>
           <div class="field"><label for="uniformN">n</label><input type="range" id="uniformN" min="1" max="60" step="1" value="5"><output data-for="uniformN"></output></div>
           <div class="field"><label for="uniformEps">ε</label><input type="range" id="uniformEps" min="0.02" max="0.5" step="0.01" value="0.15"><output data-for="uniformEps"></output></div>
@@ -186,7 +192,51 @@
     </div>
   </div>
 
-  <div class="hint">drag underlined numbers · <kbd>H</kbd> hides the cards</div>
+  <div class="help" id="help" hidden>
+    <div data-panel="limits">
+    <h4>The ε–δ game</h4>
+    <ul>
+      <li><b>drag the band</b><span>grab an edge of the yellow band to change ε</span></li>
+      <li><b>drag the dot</b><span>slide the open dot to move the point a</span></li>
+      <li><b>shrink ε</b><span>watch δ shrink with it</span></li>
+      <li><b>double-tap</b><span>start over</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <div data-panel="sequences">
+    <h4>Sequences</h4>
+    <ul>
+      <li><b>drag the band</b><span>grab an edge of the yellow band to change ε</span></li>
+      <li><b>hover a dot</b><span>see that term</span></li>
+      <li><b>scroll</b><span>show more or fewer terms</span></li>
+      <li><b>double-tap</b><span>start over</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <div data-panel="riemann">
+    <h4>Riemann sums</h4>
+    <ul>
+      <li><b>scroll</b><span>over the board to cut it into more or fewer pieces</span></li>
+      <li><b>drag a dashed line</b><span>move the ends a and b</span></li>
+      <li><b>double-tap</b><span>start over</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <div data-panel="uniform">
+    <h4>Uniform convergence</h4>
+    <ul>
+      <li><b>drag sideways</b><span>anywhere on the board to change n</span></li>
+      <li><b>drag the tube</b><span>grab its edge to change ε</span></li>
+      <li><b>double-tap</b><span>start over</span></li>
+      <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
+      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+    </ul>
+    </div>
+    <p class="credit">big lettering: Chaos by Sigrid Liira, SUVA Type Foundry</p>
+  </div>
 
   <script src="lib/katex/katex.min.js"></script>
   <script src="js/common.js"></script>

@@ -227,3 +227,181 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 1600);
 }
+
+// ---------- help: the "?" in the corner ----------
+// each page has a <div class="help" id="help"> with what you can do on it
+
+(() => {
+  const panel = document.getElementById('help');
+  if (!panel) return;
+  const btn = document.createElement('button');
+  btn.className = 'help-btn';
+  btn.textContent = '?';
+  btn.title = 'how to use this page';
+  (document.querySelector('.topbar') || document.body).appendChild(btn);
+
+  const set = open => {
+    panel.hidden = !open;
+    btn.classList.toggle('open', open);
+    btn.textContent = open ? '×' : '?';
+  };
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    set(panel.hidden);
+  });
+  document.addEventListener('pointerdown', e => {
+    if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) set(false);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === '?' && !e.target.matches('input[type="text"]')) set(panel.hidden);
+  });
+
+  // open it by itself the first time someone visits, so the controls aren't a mystery
+  const seenKey = `help-seen:${PAGE}`;
+  set(!store(seenKey));
+  store(seenKey, true);
+})();
+
+// ---------- loader: shown once when someone first arrives ----------
+
+(() => {
+  let seen = false;
+  try { seen = sessionStorage.getItem('vm-loaded') === '1'; } catch (e) { /* private mode, just show it */ }
+  if (seen) return;
+
+  const el = document.createElement('div');
+  el.className = 'loader';
+  el.innerHTML = `
+    <canvas></canvas>
+    <div class="title">
+      <h1>VISUAL MATH</h1>
+      <p>DRAWING THE BOARD <span id="loaderCount">000</span></p>
+    </div>
+    <div class="credit">title type: Chaos by Sigrid Liira</div>`;
+  document.body.appendChild(el);
+
+  const canvas = el.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  const count = el.querySelector('#loaderCount');
+  const start = performance.now();
+  const MIN = 2200;
+  let ready = false;
+  let finished = false;
+
+  // a few curves that draw themselves: a bezier with its construction, a lissajous, a sine wave
+  function frame(now) {
+    if (finished) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr)) { canvas.width = w * dpr; canvas.height = h * dpr; }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const t = (now - start) / 1000;
+    const k = Math.min(1, (now - start) / MIN);
+
+    // grid
+    const step = 48;
+    ctx.strokeStyle = 'rgba(239, 230, 207, 0.05)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = (w / 2) % step; x < w; x += step) { ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, h); }
+    for (let y = (h / 2) % step; y < h; y += step) { ctx.moveTo(0, y + 0.5); ctx.lineTo(w, y + 0.5); }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(239, 230, 207, 0.16)';
+    ctx.beginPath();
+    ctx.moveTo(0, h / 2 + 0.5); ctx.lineTo(w, h / 2 + 0.5);
+    ctx.moveTo(w / 2 + 0.5, 0); ctx.lineTo(w / 2 + 0.5, h);
+    ctx.stroke();
+
+    // sine wave sliding along the axis
+    ctx.strokeStyle = 'rgba(239, 230, 207, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let x = 0; x <= w * k; x += 4) {
+      const y = h / 2 + Math.sin(x / 70 - t * 2) * 40;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // lissajous around the middle
+    const R = Math.min(w, h) * 0.32;
+    ctx.strokeStyle = 'rgba(233, 196, 106, 0.22)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const total = Math.PI * 2 * k;
+    for (let s = 0; s <= total; s += 0.01) {
+      const x = w / 2 + R * 1.4 * Math.sin(3 * s + t * 0.3);
+      const y = h / 2 + R * Math.sin(2 * s);
+      s === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // a cubic bezier being drawn by de casteljau
+    const P = [
+      { x: w * 0.18, y: h * 0.78 },
+      { x: w * 0.32, y: h * (0.2 + 0.06 * Math.sin(t)) },
+      { x: w * 0.68, y: h * (0.2 - 0.06 * Math.sin(t)) },
+      { x: w * 0.82, y: h * 0.78 }
+    ];
+    const u = (Math.sin(t * 1.3 - Math.PI / 2) + 1) / 2;
+    const lerp2 = (a, b, s) => ({ x: a.x + (b.x - a.x) * s, y: a.y + (b.y - a.y) * s });
+    const pt = s => {
+      let q = P;
+      while (q.length > 1) q = q.slice(1).map((p, i) => lerp2(q[i], p, s));
+      return q[0];
+    };
+    ctx.setLineDash([4, 6]);
+    ctx.strokeStyle = 'rgba(239, 230, 207, 0.25)';
+    ctx.beginPath();
+    P.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    let q = P;
+    ctx.strokeStyle = 'rgba(239, 230, 207, 0.35)';
+    while (q.length > 2) {
+      q = q.slice(1).map((p, i) => lerp2(q[i], p, u));
+      ctx.beginPath();
+      q.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#e9c46a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let s = 0; s <= u + 1e-6; s += 0.01) {
+      const p = pt(Math.min(s, u));
+      s === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+    P.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#1c1c1b';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(239, 230, 207, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+    const b = pt(u);
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#e9c46a';
+    ctx.fill();
+
+    count.textContent = String(Math.round(k * 100)).padStart(3, '0');
+    if (k >= 1 && ready) finish();
+    requestAnimationFrame(frame);
+  }
+
+  function finish() {
+    if (finished) return;
+    finished = true;
+    el.classList.add('done');
+    try { sessionStorage.setItem('vm-loaded', '1'); } catch (e) { /* fine */ }
+    setTimeout(() => el.remove(), 700);
+  }
+
+  if (document.readyState === 'complete') ready = true;
+  else window.addEventListener('load', () => (ready = true));
+  el.addEventListener('click', () => { ready = true; finish(); }); // impatient people can click through
+  requestAnimationFrame(frame);
+})();

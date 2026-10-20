@@ -117,7 +117,10 @@ class View3D {
     };
     c.addEventListener('pointerup', up);
     c.addEventListener('pointercancel', up);
-    c.addEventListener('dblclick', () => this.resetView());
+    onDoubleTap(c, () => {
+      this.resetView();
+      if (typeof toast === 'function') toast('view reset');
+    });
 
     c.addEventListener('wheel', e => {
       e.preventDefault();
@@ -347,7 +350,7 @@ class View3D {
       }
     } else if (it.kind === 'text') {
       ctx.fillStyle = it.color;
-      ctx.font = it.font || '500 13px Sora, sans-serif';
+      ctx.font = it.font || '500 14px Dosis, sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText(it.text, it.s.x + it.dx, it.s.y + it.dy);

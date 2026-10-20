@@ -9,10 +9,14 @@ Everything runs in the browser with plain HTML, CSS and JavaScript. No build ste
 The visualization fills the whole screen. Equations and controls live on note cards pinned on top of it.
 
 - **drag a card** by its title to move it, double-click the title (or the arrow) to fold it, the – button makes it smaller, drag the bottom corner to resize, **H** hides every card, "tidy cards" puts them back
-- **every underlined number in an equation is a handle.** drag it left or right and the picture changes with it (hold shift for fine control)
+- the **?** in the top bar lists what you can do on each page
+- numbers in equations with a dotted yellow line under them are handles. drag one left or right and the picture changes with it (hold shift for fine control)
+- **double-tap** any board to reset it
 - 2D boards: drag empty space to pan, scroll to zoom, hover to read values
-- 3D views: drag to spin in any direction, shift-drag or right-drag to pan, scroll to zoom, double-click to reset. the axes run off forever in both directions so you always know which way is which
-- the differential equations pages keep a **log** of every equation you try (typed ones get logged once you stop typing). hover an entry to preview it, click to go back to it, or toggle it to keep its numbered, dashed solutions on the board. the log is saved in your browser
+- 3D views: drag to spin in any direction, shift-drag or right-drag to pan, scroll to zoom. the axes run off forever in both directions so you always know which way is which
+- Bézier: drag points, slide the yellow dot along the curve, shift + click to add a point, double-tap a point to remove it
+- analysis boards are hands-on: drag the edges of the ε band, slide the point a, drag the ends of a Riemann sum, scroll to change n, drag sideways to step through f₁, f₂, ...
+- the differential equations pages keep a **history** of every equation you try (typed ones get saved once you stop typing). hover an entry to see its solutions again, click to switch back, or keep it drawn underneath as numbered dashed curves. it's saved in your browser
 
 ## Pages
 
@@ -65,9 +69,15 @@ js/surfaces.js   3d surfaces page
 js/diffeq.js     differential equations page
 js/analysis.js   real analysis page
 lib/katex/       KaTeX for rendering equations (MIT license)
-lib/fonts/       Syne, Sora and Space Mono (SIL Open Font License)
+lib/fonts/       Syne, Dosis and Space Mono (SIL Open Font License), and Chaos
 ```
 
 ## Typing your own functions
 
 Inputs accept things like `sin(x)*y`, `x^2 - 3xy`, `exp(-(x^2 + y^2))`, `|x|`. Supported functions: sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, exp, ln, log, sqrt, abs, sign, floor, min, max, plus the constants pi and e.
+
+## Credits
+
+- big lettering (the loader and the section names on the board): **Chaos** by Sigrid Liira (2018), supervised by Ott Metusala, from the [SUVA Type Foundry](https://www.suva.ee/)
+- text: Dosis by Edgar Tolentino, Pablo Impallari and Igino Marini, headings: Syne, numbers: Space Mono
+- equations: KaTeX
