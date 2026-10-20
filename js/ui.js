@@ -134,7 +134,7 @@ function resetCards() {
 
 // how much of the screen the cards in this panel cover on each side, so plots can fit around them
 function cardInsets(panel) {
-  const ins = { left: 0, right: 0, top: 64, bottom: 24 };
+  const ins = { left: 0, right: 0, top: 64, bottom: 58 };
   if (isSmall()) return { left: 0, right: 0, top: 0, bottom: 0 };
   if (document.body.classList.contains('ui-hidden')) return ins;
   const W = window.innerWidth;
@@ -145,7 +145,7 @@ function cardInsets(panel) {
     else ins.right = Math.max(ins.right, W - r.left + 12);
   });
   // never squeeze the plot into nothing
-  if (W - ins.left - ins.right < W * 0.35) return { left: 0, right: 0, top: 64, bottom: 24 };
+  if (W - ins.left - ins.right < W * 0.35) return { left: 0, right: 0, top: 64, bottom: 58 };
   return ins;
 }
 
@@ -256,26 +256,21 @@ function toast(msg) {
     if (e.key === '?' && !e.target.matches('input[type="text"]')) set(panel.hidden);
   });
 
-  // open it by itself the first time someone visits, so the controls aren't a mystery
-  const seenKey = `help-seen:${PAGE}`;
-  set(!store(seenKey));
-  store(seenKey, true);
+  set(false);
 })();
 
 // ---------- loader: shown once when someone first arrives ----------
 
 (() => {
-  let seen = false;
-  try { seen = sessionStorage.getItem('vm-loaded') === '1'; } catch (e) { /* private mode, just show it */ }
-  if (seen) return;
 
   const el = document.createElement('div');
   el.className = 'loader';
   el.innerHTML = `
     <canvas></canvas>
     <div class="title">
-      <h1>VISUAL MATH</h1>
+      <h1>${'LOCUS'.split('').map((c, i) => `<span style="animation-delay: ${0.25 + i * 0.22}s, ${1.4 + i * 0.22}s">${c}</span>`).join('')}</h1>
       <p>DRAWING THE BOARD <span id="loaderCount">000</span></p>
+      <div class="bar"><div id="loaderBar"></div></div>
     </div>
     <div class="credit">title type: Chaos by Sigrid Liira</div>`;
   document.body.appendChild(el);
@@ -283,8 +278,9 @@ function toast(msg) {
   const canvas = el.querySelector('canvas');
   const ctx = canvas.getContext('2d');
   const count = el.querySelector('#loaderCount');
+  const bar = el.querySelector('#loaderBar');
   const start = performance.now();
-  const MIN = 2200;
+  const MIN = 4200;
   let ready = false;
   let finished = false;
 
@@ -388,6 +384,7 @@ function toast(msg) {
     ctx.fill();
 
     count.textContent = String(Math.round(k * 100)).padStart(3, '0');
+    bar.style.width = k * 100 + '%';
     if (k >= 1 && ready) finish();
     requestAnimationFrame(frame);
   }
@@ -396,7 +393,6 @@ function toast(msg) {
     if (finished) return;
     finished = true;
     el.classList.add('done');
-    try { sessionStorage.setItem('vm-loaded', '1'); } catch (e) { /* fine */ }
     setTimeout(() => el.remove(), 700);
   }
 

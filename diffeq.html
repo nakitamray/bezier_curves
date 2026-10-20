@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Differential Equations · Visual Math</title>
+  <title>Differential Equations · Locus</title>
   <link rel="stylesheet" href="lib/katex/katex.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -11,7 +11,7 @@
   <header class="topbar">
     <a class="wordmark" href="index.html">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 C 6 3, 18 3, 21 20" fill="none" stroke="#e9c46a" stroke-width="2" stroke-linecap="round"/><rect x="1" y="18" width="4" height="4" fill="#efe6cf"/><rect x="19" y="18" width="4" height="4" fill="#efe6cf"/></svg>
-      Visual Math
+      Locus
     </a>
     <nav class="sections">
       <a href="index.html">Bézier</a>
@@ -36,6 +36,7 @@
       <canvas id="slopeCanvas"></canvas>
       <div class="readout" id="slopeReadout"></div>
     </div>
+    <footer class="guide"><span><b>click the board</b>start a solution there</span><i>·</i><span><b>type an equation</b>it saves to History</span><i>·</i><span><b>hover History</b>compare</span><i>·</i><span><b>drag a dotted number</b>change it</span><i>·</i><span><b>drag / scroll</b>pan and zoom</span><i>·</i><span><b>double-tap</b>reset view</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
     <div class="cards">
       <section class="card" data-card="slope-eq" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The equation</h2><button class="fold" aria-label="fold">▾</button></div>
@@ -72,7 +73,7 @@
         </div>
       </section>
 
-      <section class="card narrow" data-card="slope-log" style="bottom: 18px; right: 18px">
+      <section class="card narrow" data-card="slope-log" style="bottom: 60px; right: 18px">
         <div class="card-head"><h2>History</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
           <p>Every equation you try lands here, so you can compare. <strong>Hover</strong> one to see its solutions again, <strong>click</strong> to switch back, <strong>●</strong> keeps it drawn (dashed, with its number).</p>
@@ -89,6 +90,7 @@
       <canvas id="linearCanvas"></canvas>
       <div class="readout" id="linearReadout"></div>
     </div>
+    <footer class="guide"><span><b>click the board</b>start a trajectory</span><i>·</i><span><b>drag a matrix entry</b>change A</span><i>·</i><span><b>drag on the map</b>pick a system</span><i>·</i><span><b>hover History</b>compare</span><i>·</i><span><b>double-tap</b>reset view</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
     <div class="cards">
       <section class="card" data-card="linear-matrix" style="top: 72px; left: 18px">
         <div class="card-head"><h2>x′ = Ax</h2><button class="fold" aria-label="fold">▾</button></div>
@@ -124,7 +126,7 @@
         </div>
       </section>
 
-      <section class="card narrow" data-card="linear-log" style="bottom: 18px; left: 18px">
+      <section class="card narrow" data-card="linear-log" style="bottom: 60px; left: 18px">
         <div class="card-head"><h2>History</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
           <p>Every matrix you settle on lands here. <strong>Hover</strong> to compare, <strong>click</strong> to switch back, <strong>●</strong> keeps it drawn.</p>
@@ -141,6 +143,7 @@
       <canvas id="nonlinCanvas"></canvas>
       <div class="readout" id="nonlinReadout"></div>
     </div>
+    <footer class="guide"><span><b>click the board</b>start a trajectory</span><i>·</i><span><b>chips</b>try a system</span><i>·</i><span><b>yellow dots</b>equilibria, filled = stable</span><i>·</i><span><b>hover History</b>compare</span><i>·</i><span><b>double-tap</b>reset view</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
     <div class="cards">
       <section class="card" data-card="nonlin-system" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The system</h2><button class="fold" aria-label="fold">▾</button></div>
@@ -172,7 +175,7 @@
         </div>
       </section>
 
-      <section class="card narrow" data-card="nonlin-log" style="bottom: 18px; right: 18px">
+      <section class="card narrow" data-card="nonlin-log" style="bottom: 60px; right: 18px">
         <div class="card-head"><h2>History</h2><button class="fold" aria-label="fold">▾</button></div>
         <div class="card-body">
           <p>Every system you try lands here. <strong>Hover</strong> to compare, <strong>click</strong> to switch back, <strong>●</strong> keeps it drawn.</p>

@@ -281,7 +281,7 @@ body.ui-hidden .cards .card {
   width: 300px;
   min-width: 220px;
   min-height: 46px;
-  max-height: calc(100vh - 90px);
+  max-height: calc(100vh - 136px);
   display: flex;
   flex-direction: column;
   background: var(--paper);
@@ -1129,7 +1129,7 @@ body.scrubbing * {
 .watermark {
   position: fixed;
   left: 50%;
-  bottom: 3vh;
+  bottom: 64px;
   transform: translateX(-50%);
   z-index: 0;
   font-family: var(--display);
@@ -1284,10 +1284,10 @@ body.scrubbing * {
   margin: 0;
   font-family: var(--display);
   font-weight: 400;
-  font-size: clamp(54px, 11vw, 170px);
+  font-size: clamp(80px, 16vw, 260px);
   line-height: 1;
-  color: var(--yellow);
-  text-shadow: 0 0 40px rgba(233, 196, 106, 0.25);
+  color: #ffe08a;
+  letter-spacing: 0.04em;
 }
 
 .loader .title p {
@@ -1306,4 +1306,118 @@ body.scrubbing * {
   text-align: center;
   font-size: 12px;
   color: rgba(239, 230, 207, 0.35);
+}
+
+/* ---------- the guide strip: what you can do here, always on screen ---------- */
+
+.guide {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 18;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 70px 11px;
+  background: linear-gradient(rgba(28, 28, 27, 0), rgba(20, 20, 19, 0.92) 35%);
+  font-size: 15px;
+  color: var(--chalk);
+  pointer-events: none;
+}
+
+.guide span {
+  white-space: nowrap;
+}
+
+.guide b {
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--dark-text);
+  background: var(--yellow);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-right: 6px;
+}
+
+.guide i {
+  font-style: normal;
+  color: rgba(239, 230, 207, 0.25);
+}
+
+.guide .keys {
+  margin-left: 10px;
+  color: var(--ink-soft);
+}
+
+.guide .keys b {
+  background: transparent;
+  color: var(--yellow);
+  border: 1px solid rgba(233, 196, 106, 0.5);
+  margin-left: 6px;
+}
+
+body.ui-hidden .guide {
+  opacity: 0.35;
+}
+
+@media (max-width: 820px) {
+  .guide {
+    position: static;
+    justify-content: flex-start;
+    padding: 12px 14px;
+    background: rgba(20, 20, 19, 0.9);
+    border-bottom: 1px solid rgba(239, 230, 207, 0.08);
+  }
+
+  .guide i,
+  .guide .keys {
+    display: none;
+  }
+
+  .guide span {
+    white-space: normal;
+  }
+}
+
+/* ---------- loader title: letters light up one by one ---------- */
+
+.loader .title h1 span {
+  display: inline-block;
+  opacity: 0;
+  animation: letter-in 0.9s ease forwards, glow 2.4s ease-in-out infinite;
+}
+
+@keyframes letter-in {
+  0% { opacity: 0; transform: translateY(14px) scale(0.92); filter: blur(8px); }
+  60% { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: none; filter: blur(0); }
+}
+
+@keyframes glow {
+  0%, 100% {
+    text-shadow: 0 0 6px rgba(245, 211, 107, 0.9), 0 0 18px rgba(245, 211, 107, 0.6), 0 0 42px rgba(233, 196, 106, 0.45), 0 0 90px rgba(233, 196, 106, 0.25);
+  }
+  50% {
+    text-shadow: 0 0 10px rgba(255, 228, 140, 1), 0 0 28px rgba(245, 211, 107, 0.8), 0 0 70px rgba(233, 196, 106, 0.6), 0 0 140px rgba(233, 196, 106, 0.35);
+  }
+}
+
+.loader .bar {
+  width: min(320px, 60vw);
+  height: 2px;
+  margin: 22px auto 0;
+  background: rgba(239, 230, 207, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.loader .bar div {
+  height: 100%;
+  width: 0;
+  background: var(--yellow);
+  box-shadow: 0 0 12px var(--yellow);
 }

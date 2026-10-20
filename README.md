@@ -1,4 +1,7 @@
-# Visual Math
+# Locus
+
+A locus is the set of points traced out by a rule. This is a place to watch those rules draw.
+
 
 Interactive visualizations for linear algebra, multivariable calculus, differential equations and real analysis. Not a study guide, just a place to play with shapes and watch the math change with them.
 
@@ -9,7 +12,7 @@ Everything runs in the browser with plain HTML, CSS and JavaScript. No build ste
 The visualization fills the whole screen. Equations and controls live on note cards pinned on top of it.
 
 - **drag a card** by its title to move it, double-click the title (or the arrow) to fold it, the – button makes it smaller, drag the bottom corner to resize, **H** hides every card, "tidy cards" puts them back
-- the **?** in the top bar lists what you can do on each page
+- the strip along the bottom always shows what you can do on the current board, and the **?** in the top bar explains a bit more
 - numbers in equations with a dotted yellow line under them are handles. drag one left or right and the picture changes with it (hold shift for fine control)
 - **double-tap** any board to reset it
 - 2D boards: drag empty space to pan, scroll to zoom, hover to read values
@@ -78,6 +81,6 @@ Inputs accept things like `sin(x)*y`, `x^2 - 3xy`, `exp(-(x^2 + y^2))`, `|x|`. S
 
 ## Credits
 
-- big lettering (the loader and the section names on the board): **Chaos** by Sigrid Liira (2018), supervised by Ott Metusala, from the [SUVA Type Foundry](https://www.suva.ee/)
+- big lettering (the loading screen and the section names on the board): **Chaos** by Sigrid Liira (2018), supervised by Ott Metusala, from the [SUVA Type Foundry](https://www.suva.ee/)
 - text: Dosis by Edgar Tolentino, Pablo Impallari and Igino Marini, headings: Syne, numbers: Space Mono
 - equations: KaTeX
