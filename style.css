@@ -176,6 +176,53 @@ button {
   height: 22px;
 }
 
+/* the loader's Chaos lettering, glowing, with the readable name laid over it */
+.logo {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 4px;
+}
+
+.logo > * {
+  grid-area: 1 / 1;
+}
+
+.logo-chaos {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 1;
+  color: #f5d36b;
+  text-shadow: 0 0 6px rgba(245, 211, 107, 0.8), 0 0 18px rgba(245, 211, 107, 0.45), 0 0 36px rgba(233, 196, 106, 0.3);
+  animation: logo-glow 3.2s ease-in-out infinite;
+}
+
+.logo-text {
+  position: relative;
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  color: var(--white);
+  -webkit-text-stroke: 4px var(--board);
+  paint-order: stroke fill;
+  text-shadow: 0 0 12px rgba(245, 211, 107, 0.5);
+}
+
+@keyframes logo-glow {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-chaos,
+  .loader .title h1 span {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 .sections {
   display: flex;
   gap: 2px;
@@ -1353,6 +1400,18 @@ body.scrubbing * {
 }
 
 /* ---------- about + credits, tucked into the help panel ---------- */
+
+.help .about h4 {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--yellow);
+}
+
+.help .about h4:first-child {
+  margin-top: 0;
+}
 
 .help .about {
   margin-top: 10px;
