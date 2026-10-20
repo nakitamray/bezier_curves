@@ -159,7 +159,7 @@ function toggleCards(force) {
   const hidden = document.body.classList.toggle('ui-hidden', force);
   setTimeout(cardsMoved, 260);
   const btn = document.getElementById('hideCards');
-  if (btn) btn.innerHTML = hidden ? 'show cards <kbd>H</kbd>' : 'hide cards <kbd>H</kbd>';
+  if (btn) btn.textContent = hidden ? 'show cards' : 'hide cards';
 }
 
 document.addEventListener('keydown', e => {
@@ -263,6 +263,16 @@ function toast(msg) {
 
 (() => {
 
+  let show = true;
+  try {
+    const nav = performance.getEntriesByType('navigation')[0];
+    const reload = nav && nav.type === 'reload';
+    const arrived = sessionStorage.getItem('locus-here') === '1';
+    show = reload || !arrived;
+    sessionStorage.setItem('locus-here', '1');
+  } catch (e) { /* no storage, just show it */ }
+  if (!show) return;
+
   const el = document.createElement('div');
   el.className = 'loader';
   el.innerHTML = `
@@ -272,7 +282,7 @@ function toast(msg) {
       <p>DRAWING THE BOARD <span id="loaderCount">000</span></p>
       <div class="bar"><div id="loaderBar"></div></div>
     </div>
-    <div class="credit">title type: Chaos by Sigrid Liira</div>`;
+    <div class="credit">made by Nakita Ray · lettering: Chaos by Sigrid Liira</div>`;
   document.body.appendChild(el);
 
   const canvas = el.querySelector('canvas');

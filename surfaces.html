@@ -20,15 +20,14 @@
       <a href="analysis.html">Analysis</a>
     </nav>
     <div class="modes" id="modes">
-      <button data-mode="graph" data-mark="GRAPHS">z = f(x, y)</button>
-      <button data-mode="patch" data-mark="SURFACE">Bézier surface</button>
-      <button data-mode="triple" data-mark="TRIPLE">Triple integrals</button>
+      <button data-mode="graph">z = f(x, y)</button>
+      <button data-mode="patch">Bézier surface</button>
+      <button data-mode="triple">Triple integrals</button>
     </div>
     <button class="ghost-btn" id="resetCards">tidy cards</button>
-    <button class="ghost-btn" id="hideCards">hide cards <kbd>H</kbd></button>
+    <button class="ghost-btn" id="hideCards">hide cards</button>
   </header>
 
-  <div class="watermark" id="watermark">SURFACES</div>
 
   <!-- ============ graphs of f(x, y) ============ -->
   <div data-panel="graph">
@@ -36,7 +35,7 @@
       <canvas id="graphCanvas"></canvas>
       <div class="readout" id="graphReadout"></div>
     </div>
-    <footer class="guide"><span><b>drag</b>spin</span><i>·</i><span><b>shift-drag</b>pan</span><i>·</i><span><b>scroll</b>zoom</span><i>·</i><span><b>a, b</b>reshape the surface</span><i>·</i><span><b>drop a ball</b>roll downhill</span><i>·</i><span><b>drag a dotted number</b>change it</span><i>·</i><span><b>double-tap</b>reset view</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
+    <footer class="guide"><span><b>drag</b>spin</span><i>·</i><span><b>shift-drag</b>pan</span><i>·</i><span><b>scroll</b>zoom</span><i>·</i><span><b>a, b</b>reshape the surface</span><span class="keys"><b>?</b>more</span></footer>
     <div class="cards">
       <section class="card" data-card="graph-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The surface</h2><button class="fold" aria-label="fold">▾</button></div>
@@ -95,7 +94,7 @@
       <canvas id="patchCanvas"></canvas>
       <div class="readout" id="patchReadout"></div>
     </div>
-    <footer class="guide"><span><b>drag a dot</b>pull it up or down</span><i>·</i><span><b>drag empty space</b>spin</span><i>·</i><span><b>u, v</b>move the curves</span><i>·</i><span><b>drag a dotted number</b>change it</span><i>·</i><span><b>scroll</b>zoom</span><i>·</i><span><b>double-tap</b>reset view</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
+    <footer class="guide"><span><b>drag a dot</b>pull it up or down</span><i>·</i><span><b>drag empty space</b>spin</span><i>·</i><span><b>u, v</b>move the curves</span><i>·</i><span><b>scroll</b>zoom</span><span class="keys"><b>?</b>more</span></footer>
     <div class="cards">
       <section class="card narrow" data-card="patch-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>Sculpt it</h2><button class="fold" aria-label="fold">▾</button></div>
@@ -141,7 +140,7 @@
       <canvas id="tripleCanvas"></canvas>
       <div class="readout" id="tripleReadout"></div>
     </div>
-    <footer class="guide"><span><b>drag</b>spin</span><i>·</i><span><b>pieces n</b>more cells</span><i>·</i><span><b>pull apart</b>see inside</span><i>·</i><span><b>coordinates</b>change how it is sliced</span><i>·</i><span><b>drag a dotted number</b>change it</span><i>·</i><span><b>double-tap</b>reset view</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
+    <footer class="guide"><span><b>drag</b>spin</span><i>·</i><span><b>pieces n</b>more cells</span><i>·</i><span><b>pull apart</b>see inside</span><i>·</i><span><b>coordinates</b>change how it is sliced</span><span class="keys"><b>?</b>more</span></footer>
     <div class="cards">
       <section class="card narrow" data-card="triple-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The solid</h2><button class="fold" aria-label="fold">▾</button></div>
@@ -200,7 +199,7 @@
       <li><b>x₀, y₀</b><span>move the point. the tangent plane and gradient follow it</span></li>
       <li><b>drop a ball</b><span>watch it roll downhill along −∇f</span></li>
       <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
-      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+      <li><b>cards</b><span>drag one by its title, – makes it smaller, "hide cards" clears the board</span></li>
     </ul>
     </div>
     <div data-panel="patch">
@@ -209,7 +208,7 @@
       <li><b>drag a dot</b><span>pull that control point up or down</span></li>
       <li><b>u, v</b><span>move the yellow and white curves across the surface</span></li>
       <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
-      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+      <li><b>cards</b><span>drag one by its title, – makes it smaller, "hide cards" clears the board</span></li>
     </ul>
     </div>
     <div data-panel="triple">
@@ -219,10 +218,13 @@
       <li><b>pieces n</b><span>more cells, better estimate</span></li>
       <li><b>pull apart</b><span>spread the cells out to see inside</span></li>
       <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
-      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+      <li><b>cards</b><span>drag one by its title, – makes it smaller, "hide cards" clears the board</span></li>
     </ul>
     </div>
-    <p class="credit">big lettering: Chaos by Sigrid Liira, SUVA Type Foundry</p>
+    <div class="about">
+      <p><strong>Locus</strong> is made by Nakita Ray. <a href="https://nakitaray.com" target="_blank" rel="noopener">nakitaray.com</a></p>
+      <p class="credit">Loader lettering: Chaos by Sigrid Liira (SUVA Type Foundry). Text in Dosis, Syne and Space Mono. Equations by KaTeX.</p>
+    </div>
   </div>
 
   <script src="lib/katex/katex.min.js"></script>

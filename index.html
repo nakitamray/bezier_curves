@@ -21,16 +21,15 @@
     </nav>
     <span class="spacer"></span>
     <button class="ghost-btn" id="resetCards">tidy cards</button>
-    <button class="ghost-btn" id="hideCards">hide cards <kbd>H</kbd></button>
+    <button class="ghost-btn" id="hideCards">hide cards</button>
   </header>
 
-  <div class="watermark" id="watermark">BEZIER</div>
 
   <div class="stage">
     <canvas id="bezierCanvas"></canvas>
     <div class="readout" id="readout"></div>
   </div>
-  <footer class="guide"><span><b>drag a point</b>reshape</span><i>·</i><span><b>drag the yellow dot</b>slide along the curve</span><i>·</i><span><b>shift + click</b>add a point</span><i>·</i><span><b>double-tap a point</b>remove it</span><i>·</i><span><b>drag a dotted number</b>change it</span><i>·</i><span><b>scroll</b>zoom</span><i>·</i><span><b>double-tap</b>reset view</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
+  <footer class="guide"><span><b>drag a point</b>reshape</span><i>·</i><span><b>drag the yellow dot</b>slide along the curve</span><i>·</i><span><b>shift + click</b>add a point</span><i>·</i><span><b>double-tap a point</b>remove it</span><span class="keys"><b>?</b>more</span></footer>
 
   <div class="cards">
     <section class="card narrow" data-card="curve" style="top: 72px; left: 18px">
@@ -107,10 +106,13 @@
       <li><b>double-tap empty</b><span>reset the view</span></li>
       <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
       <li><b>space</b><span>play / pause t</span></li>
-      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+      <li><b>cards</b><span>drag one by its title, – makes it smaller, "hide cards" clears the board</span></li>
     </ul>
     </div>
-    <p class="credit">big lettering: Chaos by Sigrid Liira, SUVA Type Foundry</p>
+    <div class="about">
+      <p><strong>Locus</strong> is made by Nakita Ray. <a href="https://nakitaray.com" target="_blank" rel="noopener">nakitaray.com</a></p>
+      <p class="credit">Loader lettering: Chaos by Sigrid Liira (SUVA Type Foundry). Text in Dosis, Syne and Space Mono. Equations by KaTeX.</p>
+    </div>
   </div>
 
   <script src="lib/katex/katex.min.js"></script>

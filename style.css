@@ -1036,8 +1036,7 @@ body.scrubbing * {
     max-width: 100%;
   }
 
-  .topbar .ghost-btn,
-  .watermark {
+  .topbar .ghost-btn {
     display: none;
   }
 
@@ -1122,24 +1121,6 @@ body.scrubbing * {
 .modes::-webkit-scrollbar {
   width: 4px;
   height: 4px;
-}
-
-/* ---------- the section name, huge and faint, drawn on the board behind everything ---------- */
-
-.watermark {
-  position: fixed;
-  left: 50%;
-  bottom: 64px;
-  transform: translateX(-50%);
-  z-index: 0;
-  font-family: var(--display);
-  font-size: clamp(60px, 9vw, 170px);
-  line-height: 0.9;
-  color: rgba(233, 196, 106, 0.12);
-  pointer-events: none;
-  user-select: none;
-  white-space: nowrap;
-  transition: opacity 0.4s;
 }
 
 .stage {
@@ -1308,7 +1289,7 @@ body.scrubbing * {
   color: rgba(239, 230, 207, 0.35);
 }
 
-/* ---------- the guide strip: what you can do here, always on screen ---------- */
+/* ---------- the guide strip: a quiet line of hints along the bottom ---------- */
 
 .guide {
   position: fixed;
@@ -1319,12 +1300,11 @@ body.scrubbing * {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
-  gap: 4px 12px;
-  padding: 10px 70px 11px;
-  background: linear-gradient(rgba(28, 28, 27, 0), rgba(20, 20, 19, 0.92) 35%);
-  font-size: 15px;
-  color: var(--chalk);
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 8px 60px 10px;
+  font-size: 13.5px;
+  color: rgba(239, 230, 207, 0.42);
   pointer-events: none;
 }
 
@@ -1333,44 +1313,33 @@ body.scrubbing * {
 }
 
 .guide b {
-  font-family: var(--mono);
-  font-weight: 400;
-  font-size: 12px;
-  color: var(--dark-text);
-  background: var(--yellow);
-  border-radius: 4px;
-  padding: 1px 6px;
-  margin-right: 6px;
+  font-weight: 500;
+  color: rgba(233, 196, 106, 0.75);
+  margin-right: 5px;
 }
 
 .guide i {
   font-style: normal;
-  color: rgba(239, 230, 207, 0.25);
-}
-
-.guide .keys {
-  margin-left: 10px;
-  color: var(--ink-soft);
+  color: rgba(239, 230, 207, 0.18);
 }
 
 .guide .keys b {
-  background: transparent;
-  color: var(--yellow);
-  border: 1px solid rgba(233, 196, 106, 0.5);
-  margin-left: 6px;
-}
-
-body.ui-hidden .guide {
-  opacity: 0.35;
+  font-family: var(--mono);
+  font-size: 11px;
+  border: 1px solid rgba(233, 196, 106, 0.35);
+  border-radius: 50%;
+  width: 17px;
+  height: 17px;
+  display: inline-grid;
+  place-items: center;
+  margin: 0 4px 0 6px;
 }
 
 @media (max-width: 820px) {
   .guide {
     position: static;
     justify-content: flex-start;
-    padding: 12px 14px;
-    background: rgba(20, 20, 19, 0.9);
-    border-bottom: 1px solid rgba(239, 230, 207, 0.08);
+    padding: 10px 14px;
   }
 
   .guide i,
@@ -1381,6 +1350,29 @@ body.ui-hidden .guide {
   .guide span {
     white-space: normal;
   }
+}
+
+/* ---------- about + credits, tucked into the help panel ---------- */
+
+.help .about {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ink-faint);
+}
+
+.help .about p {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.help .about a {
+  color: var(--yellow);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(233, 196, 106, 0.4);
+}
+
+.help .about a:hover {
+  border-bottom-color: var(--yellow);
 }
 
 /* ---------- loader title: letters light up one by one ---------- */

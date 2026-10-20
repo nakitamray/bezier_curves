@@ -20,16 +20,15 @@
       <a href="analysis.html" class="current">Analysis</a>
     </nav>
     <div class="modes" id="modes">
-      <button data-mode="limits" data-mark="LIMITS">ε–δ limits</button>
-      <button data-mode="sequences" data-mark="SEQUENCES">Sequences</button>
-      <button data-mode="riemann" data-mark="RIEMANN">Riemann sums</button>
-      <button data-mode="uniform" data-mark="UNIFORM">Uniform convergence</button>
+      <button data-mode="limits">ε–δ limits</button>
+      <button data-mode="sequences">Sequences</button>
+      <button data-mode="riemann">Riemann sums</button>
+      <button data-mode="uniform">Uniform convergence</button>
     </div>
     <button class="ghost-btn" id="resetCards">tidy cards</button>
-    <button class="ghost-btn" id="hideCards">hide cards <kbd>H</kbd></button>
+    <button class="ghost-btn" id="hideCards">hide cards</button>
   </header>
 
-  <div class="watermark" id="watermark">ANALYSIS</div>
 
   <!-- ============ epsilon delta ============ -->
   <div data-panel="limits">
@@ -37,7 +36,7 @@
       <canvas id="limitCanvas"></canvas>
       <div class="readout" id="limitReadout"></div>
     </div>
-    <footer class="guide"><span><b>drag the band edge</b>change ε</span><i>·</i><span><b>drag the open dot</b>move a</span><i>·</i><span><b>shrink ε</b>watch δ follow</span><i>·</i><span><b>drag a dotted number</b>change it</span><i>·</i><span><b>double-tap</b>start over</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
+    <footer class="guide"><span><b>drag the band edge</b>change ε</span><i>·</i><span><b>drag the open dot</b>move a</span><i>·</i><span><b>shrink ε</b>watch δ follow</span><i>·</i><span><b>double-tap</b>start over</span><span class="keys"><b>?</b>more</span></footer>
     <div class="cards">
       <section class="card" data-card="limit-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The game</h2><button class="fold" aria-label="fold">▾</button></div>
@@ -81,7 +80,7 @@
       <canvas id="seqCanvas"></canvas>
       <div class="readout" id="seqReadout"></div>
     </div>
-    <footer class="guide"><span><b>drag the band edge</b>change ε</span><i>·</i><span><b>hover a dot</b>read the term</span><i>·</i><span><b>scroll</b>more terms</span><i>·</i><span><b>double-tap</b>start over</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
+    <footer class="guide"><span><b>drag the band edge</b>change ε</span><i>·</i><span><b>hover a dot</b>read the term</span><i>·</i><span><b>scroll</b>more terms</span><i>·</i><span><b>double-tap</b>start over</span><span class="keys"><b>?</b>more</span></footer>
     <div class="cards">
       <section class="card" data-card="seq-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The sequence</h2><button class="fold" aria-label="fold">▾</button></div>
@@ -118,7 +117,7 @@
       <canvas id="riemannCanvas"></canvas>
       <div class="readout" id="riemannReadout"></div>
     </div>
-    <footer class="guide"><span><b>scroll</b>more or fewer pieces</span><i>·</i><span><b>drag a dashed line</b>move a or b</span><i>·</i><span><b>refine</b>animate n</span><i>·</i><span><b>double-tap</b>start over</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
+    <footer class="guide"><span><b>scroll</b>more or fewer pieces</span><i>·</i><span><b>drag a dashed line</b>move a or b</span><i>·</i><span><b>refine</b>animate n</span><i>·</i><span><b>double-tap</b>start over</span><span class="keys"><b>?</b>more</span></footer>
     <div class="cards">
       <section class="card" data-card="riemann-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>The function</h2><button class="fold" aria-label="fold">▾</button></div>
@@ -163,7 +162,7 @@
       <canvas id="uniformCanvas"></canvas>
       <div class="readout" id="uniformReadout"></div>
     </div>
-    <footer class="guide"><span><b>drag sideways</b>change n</span><i>·</i><span><b>drag the tube edge</b>change ε</span><i>·</i><span><b>play n</b>animate</span><i>·</i><span><b>double-tap</b>start over</span><span class="keys"><b>H</b>hide cards <b>?</b>more</span></footer>
+    <footer class="guide"><span><b>drag sideways</b>change n</span><i>·</i><span><b>drag the tube edge</b>change ε</span><i>·</i><span><b>play n</b>animate</span><i>·</i><span><b>double-tap</b>start over</span><span class="keys"><b>?</b>more</span></footer>
     <div class="cards">
       <section class="card" data-card="uniform-controls" style="top: 72px; left: 18px">
         <div class="card-head"><h2>A sequence of functions</h2><button class="fold" aria-label="fold">▾</button></div>
@@ -205,7 +204,7 @@
       <li><b>shrink ε</b><span>watch δ shrink with it</span></li>
       <li><b>double-tap</b><span>start over</span></li>
       <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
-      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+      <li><b>cards</b><span>drag one by its title, – makes it smaller, "hide cards" clears the board</span></li>
     </ul>
     </div>
     <div data-panel="sequences">
@@ -216,7 +215,7 @@
       <li><b>scroll</b><span>show more or fewer terms</span></li>
       <li><b>double-tap</b><span>start over</span></li>
       <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
-      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+      <li><b>cards</b><span>drag one by its title, – makes it smaller, "hide cards" clears the board</span></li>
     </ul>
     </div>
     <div data-panel="riemann">
@@ -226,7 +225,7 @@
       <li><b>drag a dashed line</b><span>move the ends a and b</span></li>
       <li><b>double-tap</b><span>start over</span></li>
       <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
-      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+      <li><b>cards</b><span>drag one by its title, – makes it smaller, "hide cards" clears the board</span></li>
     </ul>
     </div>
     <div data-panel="uniform">
@@ -236,10 +235,13 @@
       <li><b>drag the tube</b><span>grab its edge to change ε</span></li>
       <li><b>double-tap</b><span>start over</span></li>
       <li><b>drag <span class="sample">2.50</span></b><span>numbers with a dotted yellow line under them are handles. drag one left or right to change it (shift = fine)</span></li>
-      <li><b>H</b><span>hide all the cards to see the whole board. drag a card by its title, – makes it smaller</span></li>
+      <li><b>cards</b><span>drag one by its title, – makes it smaller, "hide cards" clears the board</span></li>
     </ul>
     </div>
-    <p class="credit">big lettering: Chaos by Sigrid Liira, SUVA Type Foundry</p>
+    <div class="about">
+      <p><strong>Locus</strong> is made by Nakita Ray. <a href="https://nakitaray.com" target="_blank" rel="noopener">nakitaray.com</a></p>
+      <p class="credit">Loader lettering: Chaos by Sigrid Liira (SUVA Type Foundry). Text in Dosis, Syne and Space Mono. Equations by KaTeX.</p>
+    </div>
   </div>
 
   <script src="lib/katex/katex.min.js"></script>
