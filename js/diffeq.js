@@ -236,9 +236,8 @@ const typeNotes = {
   'nodal source': 'Two positive eigenvalues. Everything flows away from the origin.'
 };
 
-
 // ===================================================================
-// the log: every equation you try gets kept
+// history: every equation you try gets kept
 // ===================================================================
 
 const LOG_COLORS = ['#e9c46a', '#8fb7d9', '#d98a7a', '#9fc79a', '#c3a3d9', '#d9b38c', '#e6e6e6'];
@@ -466,25 +465,6 @@ function singleClick(canvas, plot, fn) {
 function fade(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
-}
-
-function chipRow(id, presets, onPick) {
-  const box = document.getElementById(id);
-  presets.forEach((p, i) => {
-    if (p.hidden) return;
-    const b = document.createElement('button');
-    b.textContent = p.name;
-    b.dataset.i = i;
-    box.appendChild(b);
-  });
-  const mark = i => box.querySelectorAll('button').forEach(b => b.classList.toggle('active', +b.dataset.i === i));
-  box.addEventListener('click', e => {
-    const b = e.target.closest('button');
-    if (!b) return;
-    mark(+b.dataset.i);
-    onPick(+b.dataset.i);
-  });
-  return mark;
 }
 
 // ===================================================================

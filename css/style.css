@@ -4,70 +4,70 @@
   font-family: 'Dosis';
   font-weight: 300;
   font-display: swap;
-  src: url(lib/fonts/dosis-300.woff2) format('woff2');
+  src: url(../lib/fonts/dosis-300.woff2) format('woff2');
 }
 
 @font-face {
   font-family: 'Dosis';
   font-weight: 400;
   font-display: swap;
-  src: url(lib/fonts/dosis-400.woff2) format('woff2');
+  src: url(../lib/fonts/dosis-400.woff2) format('woff2');
 }
 
 @font-face {
   font-family: 'Dosis';
   font-weight: 500;
   font-display: swap;
-  src: url(lib/fonts/dosis-500.woff2) format('woff2');
+  src: url(../lib/fonts/dosis-500.woff2) format('woff2');
 }
 
 @font-face {
   font-family: 'Dosis';
   font-weight: 600;
   font-display: swap;
-  src: url(lib/fonts/dosis-600.woff2) format('woff2');
+  src: url(../lib/fonts/dosis-600.woff2) format('woff2');
 }
 
 /* Chaos by Sigrid Liira (2018), SUVA Type Foundry. capitals and numbers only, used big */
 @font-face {
   font-family: 'Chaos';
   font-display: block;
-  src: url(lib/fonts/chaos-regular.woff2) format('woff2');
+  src: url(../lib/fonts/chaos-regular.woff2) format('woff2');
 }
 
 @font-face {
   font-family: 'Space Mono';
   font-weight: 400;
   font-display: swap;
-  src: url(lib/fonts/space-mono-latin-400-normal.woff2) format('woff2');
+  src: url(../lib/fonts/space-mono-400.woff2) format('woff2');
 }
 
 @font-face {
   font-family: 'Space Mono';
   font-weight: 700;
   font-display: swap;
-  src: url(lib/fonts/space-mono-latin-700-normal.woff2) format('woff2');
+  src: url(../lib/fonts/space-mono-700.woff2) format('woff2');
 }
 
 @font-face {
   font-family: 'Syne';
   font-weight: 600;
   font-display: swap;
-  src: url(lib/fonts/syne-latin-600-normal.woff2) format('woff2');
+  src: url(../lib/fonts/syne-600.woff2) format('woff2');
 }
 
 @font-face {
   font-family: 'Syne';
   font-weight: 700;
   font-display: swap;
-  src: url(lib/fonts/syne-latin-700-normal.woff2) format('woff2');
+  src: url(../lib/fonts/syne-700.woff2) format('woff2');
 }
 
 @font-face {
   font-family: 'Syne';
   font-weight: 800;
   font-display: swap;
-  src: url(lib/fonts/syne-latin-800-normal.woff2) format('woff2');
+  src: url(../lib/fonts/syne-800.woff2) format('woff2');
 }
 
 
@@ -176,47 +176,26 @@ button {
   height: 22px;
 }
 
-/* the loader's Chaos lettering, glowing, with the readable name laid over it */
+/* the name in the loader's Chaos lettering, big enough to read, with a soft glow */
 .logo {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  padding: 0 4px;
-}
-
-.logo > * {
-  grid-area: 1 / 1;
-}
-
-.logo-chaos {
   font-family: var(--display);
   font-weight: 400;
-  font-size: 40px;
-  line-height: 1;
-  color: #f5d36b;
-  text-shadow: 0 0 6px rgba(245, 211, 107, 0.8), 0 0 18px rgba(245, 211, 107, 0.45), 0 0 36px rgba(233, 196, 106, 0.3);
+  font-size: 68px;
+  line-height: 0;
+  letter-spacing: 0.01em;
+  margin: -6px 0;
+  color: #ffe08a;
+  text-shadow: 0 0 2px #ffe08a, 0 0 8px rgba(245, 211, 107, 0.7), 0 0 20px rgba(233, 196, 106, 0.4);
   animation: logo-glow 3.2s ease-in-out infinite;
 }
 
-.logo-text {
-  position: relative;
-  font-family: var(--serif);
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: 0.08em;
-  color: var(--white);
-  -webkit-text-stroke: 4px var(--board);
-  paint-order: stroke fill;
-  text-shadow: 0 0 12px rgba(245, 211, 107, 0.5);
-}
-
 @keyframes logo-glow {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
+  0%, 100% { text-shadow: 0 0 2px #ffe08a, 0 0 8px rgba(245, 211, 107, 0.6), 0 0 18px rgba(233, 196, 106, 0.3); }
+  50% { text-shadow: 0 0 2px #ffe08a, 0 0 12px rgba(245, 211, 107, 0.85), 0 0 30px rgba(233, 196, 106, 0.5); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .logo-chaos,
+  .logo,
   .loader .title h1 span {
     animation: none;
     opacity: 1;

@@ -193,34 +193,6 @@ class View3D {
     this.items.push({ kind: 'head', a: from, b: to, color, top: opts.top });
   }
 
-  // grid of quads from a function (u, v) -> {x, y, z}
-  surface(fn, u0, u1, v0, v1, nu, nv, colorFn, opts = {}) {
-    const grid = [];
-    for (let i = 0; i <= nu; i++) {
-      const row = [];
-      for (let j = 0; j <= nv; j++) {
-        row.push(fn(u0 + ((u1 - u0) * i) / nu, v0 + ((v1 - v0) * j) / nv));
-      }
-      grid.push(row);
-    }
-    for (let i = 0; i < nu; i++) {
-      for (let j = 0; j < nv; j++) {
-        const q = [grid[i][j], grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1]];
-        if (q.some(p => !p || !isFinite(p.z))) continue;
-        const c = colorFn(q);
-        if (!c) continue;
-        this.poly(q, c, opts);
-      }
-    }
-    return grid;
-  }
-
-  // the 8 corners of a cell -> 6 faces
-  hexahedron(c, color, opts = {}) {
-    const faces = [[0, 1, 3, 2], [4, 6, 7, 5], [0, 4, 5, 1], [2, 3, 7, 6], [0, 2, 6, 4], [1, 5, 7, 3]];
-    faces.forEach(f => this.poly(f.map(i => c[i]), color, opts));
-  }
-
   // axes that keep going in both directions and fade out into the distance, with unit ticks near the origin
   infiniteAxes(opts = {}) {
     const L = opts.length || 60;
@@ -255,17 +227,6 @@ class View3D {
       }
       this.label(at(d, labelAt), names[i], COLORS.yellow, { dx: 6, dy: -6, font: '700 14px Syne, sans-serif' });
       this.label(at(d, -labelAt), '−' + names[i], 'rgba(239, 230, 207, 0.35)', { dx: 6, dy: -6, font: '600 12px Syne, sans-serif' });
-    });
-  }
-
-  axes(len = 3, opts = {}) {
-    const color = opts.color || 'rgba(239, 230, 207, 0.4)';
-    const names = opts.names || ['x', 'y', 'z'];
-    const o = { x: 0, y: 0, z: 0 };
-    const ends = [{ x: len, y: 0, z: 0 }, { x: 0, y: len, z: 0 }, { x: 0, y: 0, z: len }];
-    ends.forEach((e, i) => {
-      this.line(o, e, color, 1, { pieces: 8 });
-      this.label(e, names[i], COLORS.cream, { dx: 6, dy: -4 });
     });
   }
 

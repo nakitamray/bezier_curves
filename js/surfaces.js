@@ -1,6 +1,5 @@
 // 3d surfaces page: graphs of f(x, y), bezier patches, triple integrals
 
-const CREAM = [239, 230, 207];
 const YELLOW = [233, 196, 106];
 
 // ===================================================================
@@ -370,25 +369,12 @@ const graphMode = (() => {
 
   function init() {
     view = new View3D(el('graphCanvas'), { size: 11, yaw: -0.65, pitch: 0.55 });
-    const chips = el('graphChips');
-    presets.forEach((p, i) => {
-      if (!p.expr) return;
-      const b = document.createElement('button');
-      b.textContent = p.name.toLowerCase();
-      b.dataset.i = i;
-      chips.appendChild(b);
-    });
-    const markChip = i => chips.querySelectorAll('button').forEach(b => b.classList.toggle('active', +b.dataset.i === i));
-    const select = { set value(i) { markChip(+i); } };
-    chips.addEventListener('click', e => {
-      const b = e.target.closest('button');
-      if (!b) return;
+    const mark = chipRow('graphChips', presets, i => {
       lastChanged = null;
       ball = null;
-      markChip(+b.dataset.i);
-      loadPreset(+b.dataset.i);
+      loadPreset(i);
       build();
-    });
+    }, p => p.name.toLowerCase());
     el('rollBall').addEventListener('click', () => {
       ball = { x: sliders.x0.value, y: sliders.y0.value, vx: 0, vy: 0, trail: [], done: false };
       animateBall();
@@ -407,12 +393,12 @@ const graphMode = (() => {
     sliders.theta = slider('dirAngle', changed('theta'));
 
     el('graphExpr').addEventListener('input', e => {
-      select.value = presets.length - 1;
+      mark(-1);
       if (setExpr(e.target.value)) build();
     });
     Object.values(toggles).forEach(t => t.addEventListener('change', build));
 
-    markChip(0);
+    mark(0);
     loadPreset(0);
     build();
   }

@@ -14,26 +14,6 @@ function compileOrShow(src, vars, inputId, errorId) {
   }
 }
 
-// presets as a row of little buttons. returns mark(i) to show which one is on
-function chipRow(id, presets, onPick) {
-  const box = document.getElementById(id);
-  presets.forEach((p, i) => {
-    if (p.expr === null) return;
-    const b = document.createElement('button');
-    b.textContent = p.name;
-    b.dataset.i = i;
-    box.appendChild(b);
-  });
-  const mark = i => box.querySelectorAll('button').forEach(b => b.classList.toggle('active', +b.dataset.i === i));
-  box.addEventListener('click', e => {
-    const b = e.target.closest('button');
-    if (!b) return;
-    mark(+b.dataset.i);
-    onPick(+b.dataset.i);
-  });
-  return mark;
-}
-
 // the big plot sits in whatever space the cards leave free
 function boardOpts(canvasId, extra) {
   const panel = document.getElementById(canvasId).closest('[data-panel]');
@@ -255,11 +235,10 @@ const limitMode = (() => {
     se = slider('limitEps', () => { lastChanged = 'eps'; update(); });
     sl = slider('limitL', () => { lastChanged = 'L'; update(); }, 2);
     const mark = chipRow('limitChips', presets, i => { lastChanged = null; presetIndex = i; loadPreset(i); update(); });
-    const sel = { set value(i) { mark(+i); } };
     mark(0);
     el('limitShrink').addEventListener('click', () => { lastChanged = 'eps'; sweep(se, se.value, 0.02, 2500); });
     el('limitExpr').addEventListener('input', e => {
-      sel.value = presets.length - 1;
+      mark(-1);
       const c = compileOrShow(e.target.value, ['x'], 'limitExpr', 'limitError');
       if (c) { compiled = c; snap(); update(); }
     });
@@ -441,10 +420,9 @@ const seqMode = (() => {
     se = slider('seqEps', () => { lastChanged = 'eps'; update(); }, 3);
     sc = slider('seqCount', update, 0);
     const mark = chipRow('seqChips', presets, i => { lastChanged = null; loadPreset(i); update(); });
-    const sel = { set value(i) { mark(+i); } };
     mark(0);
     el('seqExpr').addEventListener('input', e => {
-      sel.value = presets.length - 1;
+      mark(-1);
       const c = compileOrShow(e.target.value, ['n'], 'seqExpr', 'seqError');
       if (c) { compiled = c; update(); }
     });
@@ -636,11 +614,10 @@ const riemannMode = (() => {
     sa = slider('riemannA', () => { lastChanged = 'a'; update(); });
     sb = slider('riemannB', () => { lastChanged = 'b'; update(); });
     const mark = chipRow('riemannChips', presets, i => { presetIndex = i; loadPreset(i); update(); });
-    const sel = { set value(i) { mark(+i); } };
     mark(0);
     el('riemannPlay').addEventListener('click', () => { lastChanged = 'n'; sweep(sn, 1, 60, 3500); });
     el('riemannExpr').addEventListener('input', e => {
-      sel.value = presets.length - 1;
+      mark(-1);
       const c = compileOrShow(e.target.value, ['x'], 'riemannExpr', 'riemannError');
       if (c) { compiled = c; update(); }
     });

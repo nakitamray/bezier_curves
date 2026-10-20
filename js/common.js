@@ -448,6 +448,27 @@ function slider(id, onInput, digits = 2) {
   };
 }
 
+// presets as a row of small buttons. a preset with expr: null is the "custom" slot and gets no button.
+// returns mark(i), which highlights button i (or none for -1)
+function chipRow(id, presets, onPick, label = p => p.name) {
+  const box = document.getElementById(id);
+  presets.forEach((p, i) => {
+    if (p.expr === null) return;
+    const b = document.createElement('button');
+    b.textContent = label(p);
+    b.dataset.i = i;
+    box.appendChild(b);
+  });
+  const mark = i => box.querySelectorAll('button').forEach(b => b.classList.toggle('active', +b.dataset.i === i));
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    mark(+b.dataset.i);
+    onPick(+b.dataset.i);
+  });
+  return mark;
+}
+
 // little segmented tab control inside a page. calls onChange(key)
 function modeTabs(containerId, onChange) {
   const root = document.getElementById(containerId);

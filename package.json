@@ -1,0 +1,10 @@
+{
+  "name": "locus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An interactive playground for Bézier curves, 3D surfaces, differential equations and real analysis.",
+  "author": "Nakita Ray (https://nakitaray.com)",
+  "scripts": {
+    "start": "npx --yes serve ."
+  }
+}

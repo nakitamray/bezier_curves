@@ -44,30 +44,6 @@ function powerRow(n, t) {
   return row;
 }
 
-// row vector times matrix
-function rowTimesMatrix(row, M) {
-  const out = new Array(M[0].length).fill(0);
-  for (let j = 0; j < row.length; j++) {
-    for (let i = 0; i < M[j].length; i++) {
-      out[i] += row[j] * M[j][i];
-    }
-  }
-  return out;
-}
-
-// evaluate with the matrix form so the numbers on screen are the ones actually used
-function evalBezierMatrix(points, t) {
-  const n = points.length - 1;
-  const weights = rowTimesMatrix(powerRow(n, t), bezierMatrix(n));
-  let x = 0;
-  let y = 0;
-  for (let i = 0; i <= n; i++) {
-    x += weights[i] * points[i].x;
-    y += weights[i] * points[i].y;
-  }
-  return { x, y };
-}
-
 // every level of de casteljau's algorithm
 // levels[0] = control points, last level = the single point B(t)
 function deCasteljau(points, t) {

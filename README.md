@@ -1,87 +1,85 @@
 # Locus
 
-A locus is the set of points traced out by a rule. This is a place to watch those rules draw.
+An interactive playground for Bézier curves, multivariable calculus, differential equations and real analysis. Drag things around and watch the math change with them.
 
+A locus is the set of points traced out by a rule. Every board here draws one.
 
-Interactive visualizations for linear algebra, multivariable calculus, differential equations and real analysis. Not a study guide, just a place to play with shapes and watch the math change with them.
+## Features
 
-Everything runs in the browser with plain HTML, CSS and JavaScript. No build step.
+**Bézier curves**
+- Drag control points, or slide along the curve to change t, and watch the de Casteljau construction
+- Bernstein form with live weights, and the matrix form `B(t) = T · M · P`
+- Touching a point highlights its term in every equation, its row and column in the matrices, and its basis curve
+- Degree elevation, tangent vector, convex hull and shape presets
 
-## How it works
+**3D surfaces**
+- `z = f(x, y)` with your own function: partial derivatives as slopes of traces, gradient, tangent plane, directional derivative, level curves and the second derivative test
+- A ball that rolls downhill and a steepest-ascent path
+- Bicubic Bézier patches you sculpt by dragging control points
+- Triple integrals over balls, cylinders and cones in rectangular, cylindrical and spherical coordinates, with the Riemann sum cells drawn in 3D
 
-The visualization fills the whole screen. Equations and controls live on note cards pinned on top of it.
+**Differential equations**
+- Slope fields with solution curves and Euler's method step by step
+- Linear systems `x' = Ax` with eigenvalues, eigenvectors and a trace–determinant map
+- Nonlinear systems with nullclines and automatically classified equilibria
+- A history of every equation you try, to compare them side by side
 
-- **drag a card** by its title to move it, double-click the title (or the arrow) to fold it, the – button makes it smaller, drag the bottom corner to resize, "hide cards" clears the board, "tidy cards" puts them back
-- the line along the bottom shows the main things you can do on the current board, and the **?** in the top bar has the rest
-- numbers in equations with a dotted yellow line under them are handles. drag one left or right and the picture changes with it (hold shift for fine control)
-- **double-tap** any board to reset it
-- 2D boards: drag empty space to pan, scroll to zoom, hover to read values
-- 3D views: drag to spin in any direction, shift-drag or right-drag to pan, scroll to zoom. the axes run off forever in both directions so you always know which way is which
-- Bézier: drag points, slide the yellow dot along the curve, shift + click to add a point, double-tap a point to remove it
-- analysis boards are hands-on: drag the edges of the ε band, slide the point a, drag the ends of a Riemann sum, scroll to change n, drag sideways to step through f₁, f₂, ...
-- the differential equations pages keep a **history** of every equation you try (typed ones get saved once you stop typing). hover an entry to see its solutions again, click to switch back, or keep it drawn underneath as numbered dashed curves. it's saved in your browser
+**Real analysis**
+- ε–δ limits, ε–N sequences, upper and lower sums, and pointwise vs uniform convergence, all draggable
 
-## Pages
+## Controls
 
-**Bézier Curves** (`index.html`)
-- drag control points, sweep t (or drag the yellow dot along the curve), watch the de Casteljau construction
-- shape presets and t marks that show where the curve speeds up and slows down
-- Bernstein form with a table of weights at the current t
-- matrix form `B(t) = T · M · P`
-- touching a point highlights its term in every equation, its row in M and P, and its basis curve
-- degree elevation, tangent vector, convex hull
+| Action | What it does |
+| --- | --- |
+| Drag on a board | Pan (2D) or spin in any direction (3D) |
+| Scroll | Zoom |
+| Double-tap | Reset the board |
+| Drag a dotted number | Change that value in the equation |
+| `?` in the top bar | Everything you can do on the current page |
 
-**3D Surfaces** (`surfaces.html`)
-- graphs `z = f(x, y)`: type your own function or use a preset, then move parameters a and b. Shows partial derivatives as slopes of traces, the gradient, the tangent plane, directional derivatives, level curves and the second derivative test (with a Newton's method button to find critical points)
-- drop a ball and watch it roll downhill, or draw the steepest-ascent path up the gradient
-- Bézier surfaces: a bicubic patch you can sculpt by dragging control points, with the matrix form `z = U M Z Mᵀ Vᵀ` and the "surface made of curves" view
-- triple integrals: balls, cylinders, cones, ice cream cones and paraboloids in rectangular, cylindrical and spherical coordinates. The Riemann sum cells are drawn in 3D (and can be pulled apart) so you can see how each coordinate system chops up the region
+Cards can be dragged by their title, folded, shrunk or hidden.
 
-**Differential Equations** (`diffeq.html`)
-- slope fields with click-to-solve curves and Euler's method step by step
-- linear systems `x' = Ax` with eigenvalues, eigenvectors, the general solution and a clickable trace-determinant map
-- nonlinear systems (pendulum, predator-prey, Van der Pol, competing species or your own) with nullclines and automatically found and classified equilibria
+## Running locally
 
-**Real Analysis** (`analysis.html`)
-- ε–δ limits: pick ε, see the largest δ that works (or why none does)
-- sequences: ε–N convergence
-- upper/lower Darboux sums and left/right/midpoint Riemann sums
-- pointwise vs uniform convergence of function sequences
+There is no build step. Serve the folder with any static file server:
 
-## Running it
-
-Open `index.html` in a browser, or serve the folder:
-
-```
+```bash
+npm start
+# or
 python3 -m http.server
 ```
 
-and go to http://localhost:8000.
+Then open http://localhost:3000 (or :8000 for Python).
 
-## Layout
+## Project structure
 
 ```
-index.html, surfaces.html, diffeq.html, analysis.html
-style.css
-js/common.js     shared helpers: 2d plotting with pan/zoom, sliders, katex, an expression parser
-js/ui.js         the floating cards, hiding them, and dragging numbers in equations
-js/math.js       bezier math (bernstein, matrix form, de casteljau, convex hull)
-js/view3d.js     small 3d renderer on a 2d canvas (painter's algorithm)
-js/bezier.js     bezier page
-js/surfaces.js   3d surfaces page
-js/diffeq.js     differential equations page
-js/analysis.js   real analysis page
-lib/katex/       KaTeX for rendering equations (MIT license)
-lib/fonts/       Syne, Dosis and Space Mono (SIL Open Font License), and Chaos
+index.html        Bézier curves
+surfaces.html     3D surfaces
+diffeq.html       differential equations
+analysis.html     real analysis
+css/style.css     all styles
+js/common.js      shared helpers: 2D plotting, sliders, KaTeX, expression parser
+js/ui.js          cards, help panel, number scrubbing, loader
+js/math.js        Bézier math
+js/view3d.js      3D renderer on a 2D canvas
+js/bezier.js      page scripts, one per page
+js/surfaces.js
+js/diffeq.js
+js/analysis.js
+lib/              KaTeX and fonts
+assets/           favicon
 ```
 
-## Typing your own functions
+## Built with
 
-Inputs accept things like `sin(x)*y`, `x^2 - 3xy`, `exp(-(x^2 + y^2))`, `|x|`. Supported functions: sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, exp, ln, log, sqrt, abs, sign, floor, min, max, plus the constants pi and e.
+HTML, CSS and vanilla JavaScript on the Canvas 2D API. The 3D renderer, plotting and expression parser are written from scratch. Equations are typeset with [KaTeX](https://katex.org).
 
 ## Credits
 
-- made by **Nakita Ray** ([nakitaray.com](https://nakitaray.com))
-- loading screen lettering: **Chaos** by Sigrid Liira (2018), supervised by Ott Metusala, from the [SUVA Type Foundry](https://www.suva.ee/)
-- text: Dosis by Edgar Tolentino, Pablo Impallari and Igino Marini, headings: Syne, numbers: Space Mono
-- equations: KaTeX
+- Loader and logo lettering: **Chaos** by Sigrid Liira (2018), supervised by Ott Metusala, [SUVA Type Foundry](https://www.suva.ee/)
+- Dosis by Edgar Tolentino, Pablo Impallari and Igino Marini; Syne; Space Mono (SIL Open Font License)
+
+## Author
+
+Made by **Nakita Ray** · [nakitaray.com](https://nakitaray.com)
